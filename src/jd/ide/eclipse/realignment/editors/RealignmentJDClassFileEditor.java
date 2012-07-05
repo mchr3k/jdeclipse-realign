@@ -27,8 +27,8 @@ import org.eclipse.jdt.internal.core.SourceMapper;
 
 @SuppressWarnings("restriction")
 public class RealignmentJDClassFileEditor extends JDClassFileEditor
-{
-	@SuppressWarnings("unchecked") 
+{ 
+	@SuppressWarnings("rawtypes")
 	protected SourceMapper newSourceMapper(  
 		IPath rootPath, IPath sourcePath, String sourceRootPath, Map options)
 	{
@@ -47,9 +47,8 @@ public class RealignmentJDClassFileEditor extends JDClassFileEditor
 		return null;
 		
 	}
-	
-	@SuppressWarnings("unchecked") 
-	public static JDSourceMapper createJDSourceMapper( IPath rootPath, IPath sourcePath, String sourceRootPath, Map options)
+	 
+	public static JDSourceMapper createJDSourceMapper( IPath rootPath, IPath sourcePath, String sourceRootPath, Map<?,?> options)
 	throws SecurityException, NoSuchMethodException, IllegalArgumentException, IllegalAccessException, InvocationTargetException, InstantiationException, ClassNotFoundException{
 		Method method = JDClassFileEditor.class.getDeclaredMethod(
 				"newSourceMapper", new Class[] {IPath.class,IPath.class,String.class,Map.class});
@@ -58,9 +57,8 @@ public class RealignmentJDClassFileEditor extends JDClassFileEditor
 					getJDClassFileEditorClass().newInstance(),new Object[] {rootPath,sourcePath,sourceRootPath,options});	
 			return  sourceMapper;
 	}
-	
-	@SuppressWarnings("unchecked") 
-	static Class getJDClassFileEditorClass() throws ClassNotFoundException{
+	 
+	static Class<?> getJDClassFileEditorClass() throws ClassNotFoundException{
 		IExtensionRegistry registry = Platform.getExtensionRegistry();
 		IExtensionPoint point = registry.getExtensionPoint("org.eclipse.ui.editors");
 		if (point == null) 
@@ -75,6 +73,11 @@ public class RealignmentJDClassFileEditor extends JDClassFileEditor
 			}
 		}
 		return null;
+	}
+	
+	@Override
+	public boolean isEditable() {
+		return false;
 	}
 }
 

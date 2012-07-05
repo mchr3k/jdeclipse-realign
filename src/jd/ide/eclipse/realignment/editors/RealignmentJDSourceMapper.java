@@ -22,9 +22,8 @@ public class RealignmentJDSourceMapper extends JDSourceMapper
 {
 	String libraryPath=null;
 	
-	@SuppressWarnings("unchecked")
 	public RealignmentJDSourceMapper(
-		IPath classePath, IPath sourcePath, String sourceRootPath, Map options,JDSourceMapper sourceMapper) 
+		IPath classePath, IPath sourcePath, String sourceRootPath, Map<?,?> options,JDSourceMapper sourceMapper) 
 	{
 		super(classePath, sourcePath, sourceRootPath,options);
 		Method method;

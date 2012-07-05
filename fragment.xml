@@ -10,20 +10,14 @@
             class="jd.ide.eclipse.realignment.editors.RealignmentJDClassFileEditor"
             contributorClass="org.eclipse.ui.texteditor.BasicTextEditorActionContributor"
             extensions="class"
-            name="Realignment for JD Class File Editor">
+            name="Class File Viewer [Decompiled]">
       </editor>
    </extension>
 
    <extension
-         point="org.eclipse.ui.preferencePages">
-      <page
-            category="org.eclipse.jdt.ui.preferences.JavaBasePreferencePage/jd.ide.eclipse.preferences.PreferencePage"
-            class="jd.ide.eclipse.realignment.preferences.RealignmentPreferencePage"
-            id="realignment.preferences.jd.ide.eclipse"
-            name="Batch Realignment">
-      </page>
+         point="org.eclipse.ui.startup">
+      <startup class="jd.ide.eclipse.realignment.Startup"/>
    </extension>
-
 
 
 </fragment>
