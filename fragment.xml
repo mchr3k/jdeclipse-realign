@@ -18,6 +18,26 @@
          point="org.eclipse.ui.startup">
       <startup class="jd.ide.eclipse.realignment.Startup"/>
    </extension>
-
+   <extension
+         point="org.eclipse.ui.popupMenus">
+      <objectContribution
+            adaptable="true"
+            id="realignment.jd.ide.eclipse.ClassActions"
+            objectClass="org.eclipse.jdt.core.IClassFile">
+         <menu
+               id="realignment.jd.ide.eclipse.menu1"
+               label="Open With"
+               path="group.navigate">
+         </menu>
+      </objectContribution>
+   </extension>
+   <extension
+         point="org.eclipse.ui.menus">
+      <menuContribution
+            allPopups="false"
+            class="jd.ide.eclipse.realignment.menu.OpenClassWith"
+            locationURI="popup:org.eclipse.jdt.ui.PackageExplorer?before=group.edit">
+      </menuContribution>
+   </extension>
 
 </fragment>

@@ -13,10 +13,11 @@ import org.eclipse.ui.PlatformUI;
 public class Startup implements IStartup {
 
 	// The plug-in IDs
-	private static final String EDITOR_ID  = "realignment.editor.jd.ide.eclipse";
+	public static final String EDITOR_ID  = "realignment.editor.jd.ide.eclipse";
+	public static final String JD_EDITOR_ID = "jd.ide.eclipse.editors.JDClassFileEditor";
 
 	// External plug-in IDs
-	private static final String JDT_EDITOR_ID  = "org.eclipse.jdt.ui.ClassFileEditor";
+	public static final String JDT_EDITOR_ID  = "org.eclipse.jdt.ui.ClassFileEditor";
 
 	// Preferences
 	public  static final String PLUGIN_ID      = "jd.ide.eclipse.realignment";
@@ -26,18 +27,20 @@ public class Startup implements IStartup {
 
 		IPreferenceStore store = JavaDecompilerPlugin.getDefault().getPreferenceStore();
 
-		// Is the first launch ?
-		if (store.getBoolean(PREF_SETUP) == false)
-		{
-			// Setup ".class" file association
-			Display.getDefault().syncExec(new SetupClassFileAssociationRunnable());
-			store.setValue(PREF_SETUP, true);
-		}
+		// Setup ".class" file association
+		Display.getDefault().syncExec(new SetupClassFileAssociationRunnable(!store.getBoolean(PREF_SETUP)));
+		store.setValue(PREF_SETUP, true);
 	}
 
 
 	private static class SetupClassFileAssociationRunnable implements Runnable
 	{
+		private final boolean firstStart;
+
+		public SetupClassFileAssociationRunnable(boolean firstStart) {
+			this.firstStart = firstStart;
+		}
+
 		public void run()
 		{
 			IEditorRegistry registry =
@@ -63,23 +66,50 @@ public class Startup implements IStartup {
 				}
 			}
 			IEditorDescriptor jdtClassViewer = registry.findEditor(JDT_EDITOR_ID);
+			IEditorDescriptor jdClassViewer = registry.findEditor(JD_EDITOR_ID);
 
-			if (classNoSource != null)
+			if (firstStart)
 			{
-				// Got a "class without source" type - default to handle this and un-default from
-				// the "class" type
-				registry.setDefaultEditor("." + classNoSource.getExtension(), EDITOR_ID);
+				// First start:
+				// * If there is a "class without source" type - handle this and revert "class" to
+				// the default handler.
+				// * Else register as the default handler for "class"
 
-				if ((classPlain != null) && (jdtClassViewer != null))
+				if (classNoSource != null)
 				{
-					// Restore the default class viewer as the default "class with source" viewer
-					registry.setDefaultEditor("." + classPlain.getExtension(), JDT_EDITOR_ID);
+					// Got a "class without source" type - default to handle this and un-default from
+					// the "class" type
+					registry.setDefaultEditor("." + classNoSource.getExtension(), EDITOR_ID);
+
+					if ((classPlain != null) && (jdtClassViewer != null))
+					{
+						// Restore the default class viewer as the default "class with source" viewer
+						registry.setDefaultEditor("." + classPlain.getExtension(), JDT_EDITOR_ID);
+					}
+				}
+				else if (classPlain != null)
+				{
+					// Only got a class file type - default to decompile this
+					registry.setDefaultEditor("." + classPlain.getExtension(), EDITOR_ID);
 				}
 			}
-			else if (classPlain != null)
+			else
 			{
-				// Only got a class file type - default to decompile this
-				registry.setDefaultEditor("." + classPlain.getExtension(), EDITOR_ID);
+				// Other starts:
+				// * Grab default handler status from the standard JD editor
+
+				for (IFileEditorMapping mapping : new IFileEditorMapping[] {classNoSource, classPlain})
+				{
+					if (mapping != null)
+					{
+						IEditorDescriptor defaultEditor = mapping.getDefaultEditor();
+						if ((defaultEditor == null) ||
+						    (defaultEditor.getId().startsWith(JD_EDITOR_ID)))
+						{
+							registry.setDefaultEditor("." + mapping.getExtension(), EDITOR_ID);
+						}
+					}
+				}
 			}
 		}
 	}
