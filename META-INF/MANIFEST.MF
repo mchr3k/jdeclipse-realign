@@ -2,7 +2,7 @@ Manifest-Version: 1.0
 Bundle-ManifestVersion: 2
 Bundle-Name: Realignment for JD-Eclipse Plug-in
 Bundle-SymbolicName: realignment.jd.ide.eclipse;singleton:=true
-Bundle-Version: 1.0.5
+Bundle-Version: 1.0.6
 Fragment-Host: jd.ide.eclipse
 Bundle-RequiredExecutionEnvironment: J2SE-1.5
 

@@ -41,6 +41,7 @@ import org.eclipse.jface.viewers.IStructuredSelection;
 import org.eclipse.swt.widgets.Shell;
 import org.eclipse.ui.IEditorDescriptor;
 import org.eclipse.ui.IEditorInput;
+import org.eclipse.ui.IEditorPart;
 import org.eclipse.ui.IEditorRegistry;
 import org.eclipse.ui.ISelectionService;
 import org.eclipse.ui.IWorkbenchPage;
@@ -54,6 +55,69 @@ import org.eclipse.ui.services.IServiceLocator;
 
 @SuppressWarnings("restriction")
 public class OpenClassWith extends ExtensionContributionFactory {
+
+	private final class OpenClassesAction extends Action {
+		private final IEditorDescriptor classEditor;
+		private final ISelectionService selService;
+
+		private OpenClassesAction(IEditorDescriptor classEditor,
+				ISelectionService selService) {
+			this.classEditor = classEditor;
+			this.selService = selService;
+		}
+
+		@Override
+		public String getText() {
+			return classEditor.getLabel();
+		}
+
+		@Override
+		public ImageDescriptor getImageDescriptor() {
+			return classEditor.getImageDescriptor();
+		}
+
+		@Override
+		public void run() {
+			// Get UI refs
+			IWorkbenchWindow window = PlatformUI.getWorkbench().getActiveWorkbenchWindow();
+			if (window == null)
+				return;
+			IWorkbenchPage page = window.getActivePage();
+			if (page == null)
+				return;
+
+			// Get selection
+			List<IClassFile> classes = getSelectedClasses(selService);
+
+			// Load each IClassFile into the selected editor
+			for (IClassFile classfile : classes)
+			{
+				// Convert the IClassFile to an IEditorInput
+				IEditorInput input = EditorUtility.getEditorInput(classfile);
+
+				try {
+					IEditorPart openEditor = page.openEditor(input, classEditor.getId(), true);
+
+					if ((openEditor != null) &&
+						(!classEditor.getId().equals(openEditor.getEditorSite().getId())))
+				    {
+						// An existing editor already has this class open. Close it
+						// and re-open in the correct editor
+						if (!openEditor.isDirty())
+						{
+							openEditor.getSite().getPage().closeEditor(openEditor, false);
+							page.openEditor(input, classEditor.getId(), true);
+						}
+				    }
+
+				} catch (PartInitException e) {
+					JavaDecompilerPlugin.getDefault().getLog().log(new Status(
+							Status.ERROR, JavaDecompilerPlugin.PLUGIN_ID,
+							0, e.getMessage(), e));
+				}
+			}
+		}
+	}
 
 	@Override
 	public void createContributionItems(IServiceLocator serviceLocator,
@@ -108,44 +172,7 @@ public class OpenClassWith extends ExtensionContributionFactory {
                 	}
 
                 	// Create Action item
-                    list[ii - offset] = new ActionContributionItem(new Action() {
-                    	@Override
-                    	public String getText() {
-                    		return classEditor.getLabel();
-                    	}
-                    	@Override
-                    	public ImageDescriptor getImageDescriptor() {
-                    		return classEditor.getImageDescriptor();
-                    	}
-						@Override
-                    	public void run() {
-                			// Get UI refs
-							IWorkbenchWindow window = PlatformUI.getWorkbench().getActiveWorkbenchWindow();
-                			if (window == null)
-                				return;
-                			IWorkbenchPage page = window.getActivePage();
-                			if (page == null)
-                				return;
-
-                			// Get selection
-							List<IClassFile> classes = getSelectedClasses(selService);
-
-                    		// Load each IClassFile into the selected editor
-                    		for (IClassFile classfile : classes)
-                    		{
-                    			// Convert the IClassFile to an IEditorInput
-                    			IEditorInput input = EditorUtility.getEditorInput(classfile);
-
-                    			try {
-									page.openEditor(input, classEditor.getId(), true);
-								} catch (PartInitException e) {
-									JavaDecompilerPlugin.getDefault().getLog().log(new Status(
-											Status.ERROR, JavaDecompilerPlugin.PLUGIN_ID,
-											0, e.getMessage(), e));
-								}
-                    		}
-                    	}
-                    });
+                    list[ii - offset] = new ActionContributionItem(new OpenClassesAction(classEditor, selService));
                 }
 
                 if (singleSelection)

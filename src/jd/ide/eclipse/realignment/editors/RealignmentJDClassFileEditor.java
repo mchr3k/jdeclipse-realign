@@ -119,7 +119,6 @@ public class RealignmentJDClassFileEditor extends JDClassFileEditor
 							Status.ERROR, JavaDecompilerPlugin.PLUGIN_ID,
 							0, e.getMessage(), e));
 				}
-				System.out.println("foo");
 			}
 
 			// Search package fragment root.
