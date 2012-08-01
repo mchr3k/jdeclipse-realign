@@ -5,11 +5,12 @@
    <extension
          point="org.eclipse.ui.editors">
       <editor
-            default="false"
-            id="realignment.editor.jd.ide.eclipse"
             class="jd.ide.eclipse.realignment.editors.RealignmentJDClassFileEditor"
             contributorClass="org.eclipse.ui.texteditor.BasicTextEditorActionContributor"
+            default="false"
             extensions="class"
+            icon="icons/icon.png"
+            id="realignment.editor.jd.ide.eclipse"
             name="Class File Viewer [Decompiled]">
       </editor>
    </extension>
