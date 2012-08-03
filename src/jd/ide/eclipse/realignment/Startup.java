@@ -5,10 +5,12 @@ import jd.ide.eclipse.JavaDecompilerPlugin;
 import org.eclipse.jface.preference.IPreferenceStore;
 import org.eclipse.swt.widgets.Display;
 import org.eclipse.ui.IEditorDescriptor;
-import org.eclipse.ui.IEditorRegistry;
 import org.eclipse.ui.IFileEditorMapping;
 import org.eclipse.ui.IStartup;
 import org.eclipse.ui.PlatformUI;
+import org.eclipse.ui.internal.registry.EditorDescriptor;
+import org.eclipse.ui.internal.registry.EditorRegistry;
+import org.eclipse.ui.internal.registry.FileEditorMapping;
 
 public class Startup implements IStartup {
 
@@ -41,10 +43,11 @@ public class Startup implements IStartup {
 			this.firstStart = firstStart;
 		}
 
+		@SuppressWarnings("restriction")
 		public void run()
 		{
-			IEditorRegistry registry =
-			           PlatformUI.getWorkbench().getEditorRegistry();
+			EditorRegistry registry =
+			           (EditorRegistry) PlatformUI.getWorkbench().getEditorRegistry();
 
 			// Will not work because this will not persist across sessions
 			// registry.setDefaultEditor("*.class", id);
@@ -66,7 +69,6 @@ public class Startup implements IStartup {
 				}
 			}
 			IEditorDescriptor jdtClassViewer = registry.findEditor(JDT_EDITOR_ID);
-			IEditorDescriptor jdClassViewer = registry.findEditor(JD_EDITOR_ID);
 
 			if (firstStart)
 			{
@@ -81,10 +83,22 @@ public class Startup implements IStartup {
 					// the "class" type
 					registry.setDefaultEditor("." + classNoSource.getExtension(), EDITOR_ID);
 
-					if ((classPlain != null) && (jdtClassViewer != null))
+					if (classPlain != null)
 					{
-						// Restore the default class viewer as the default "class with source" viewer
-						registry.setDefaultEditor("." + classPlain.getExtension(), JDT_EDITOR_ID);
+						if (jdtClassViewer != null)
+						{
+							// Restore the default class viewer as the default "class with source" viewer
+							registry.setDefaultEditor("." + classPlain.getExtension(), JDT_EDITOR_ID);
+						}
+
+						for (IEditorDescriptor editorDesc : classPlain.getEditors())
+						{
+							if (editorDesc.getId().startsWith(JD_EDITOR_ID))
+							{
+								// Unmap the default JD Eclipse editor
+								((FileEditorMapping)classPlain).removeEditor((EditorDescriptor) editorDesc);
+							}
+						}
 					}
 				}
 				else if (classPlain != null)
@@ -111,6 +125,10 @@ public class Startup implements IStartup {
 					}
 				}
 			}
+
+			// Save updates
+			registry.setFileEditorMappings((FileEditorMapping[]) mappings);
+			registry.saveAssociations();
 		}
 	}
 
