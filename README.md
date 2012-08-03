@@ -12,6 +12,10 @@ Features
 
 This project adds the following:
 
+*01/08/2012 (1.0.6)*
+
+* Add a custom editor icon. 
+
 *08/07/2012 (1.0.5)*
 
 * Add "Open Class With" dynamic submenu to choose which editor to open class files with.
