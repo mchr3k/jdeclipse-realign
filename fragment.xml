@@ -2,18 +2,6 @@
 <?eclipse version="3.4"?>
 <fragment>
 
-   <extension
-         point="org.eclipse.ui.editors">
-      <editor
-            class="jd.ide.eclipse.realignment.editors.RealignmentJDClassFileEditor"
-            contributorClass="org.eclipse.ui.texteditor.BasicTextEditorActionContributor"
-            default="false"
-            extensions="class"
-            icon="icons/icon.png"
-            id="realignment.editor.jd.ide.eclipse"
-            name="Class File Viewer [Decompiled]">
-      </editor>
-   </extension>
 
    <extension
          point="org.eclipse.ui.startup">

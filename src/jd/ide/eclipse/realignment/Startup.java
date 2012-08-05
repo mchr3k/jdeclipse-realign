@@ -1,8 +1,5 @@
 package jd.ide.eclipse.realignment;
 
-import jd.ide.eclipse.JavaDecompilerPlugin;
-
-import org.eclipse.jface.preference.IPreferenceStore;
 import org.eclipse.swt.widgets.Display;
 import org.eclipse.ui.IEditorDescriptor;
 import org.eclipse.ui.IFileEditorMapping;
@@ -12,6 +9,7 @@ import org.eclipse.ui.internal.registry.EditorDescriptor;
 import org.eclipse.ui.internal.registry.EditorRegistry;
 import org.eclipse.ui.internal.registry.FileEditorMapping;
 
+@SuppressWarnings("restriction")
 public class Startup implements IStartup {
 
 	// The plug-in IDs
@@ -26,24 +24,13 @@ public class Startup implements IStartup {
 	public static final String PREF_SETUP      = PLUGIN_ID + ".prefs.Setup";
 
 	public void earlyStartup() {
-
-		IPreferenceStore store = JavaDecompilerPlugin.getDefault().getPreferenceStore();
-
 		// Setup ".class" file association
-		Display.getDefault().syncExec(new SetupClassFileAssociationRunnable(!store.getBoolean(PREF_SETUP)));
-		store.setValue(PREF_SETUP, true);
+		Display.getDefault().syncExec(new SetupClassFileAssociationRunnable());
 	}
 
 
 	private static class SetupClassFileAssociationRunnable implements Runnable
 	{
-		private final boolean firstStart;
-
-		public SetupClassFileAssociationRunnable(boolean firstStart) {
-			this.firstStart = firstStart;
-		}
-
-		@SuppressWarnings("restriction")
 		public void run()
 		{
 			EditorRegistry registry =
@@ -68,59 +55,30 @@ public class Startup implements IStartup {
 					classPlain = mapping;
 				}
 			}
-			IEditorDescriptor jdtClassViewer = registry.findEditor(JDT_EDITOR_ID);
 
-			if (firstStart)
+			// On start:
+			// * Revert the class mappings to use the JDT Class File Viewer
+			// * Delete any file mappings which include the JD or JD-Realign editors
+
+			for (IFileEditorMapping mapping : new IFileEditorMapping[] {classNoSource, classPlain})
 			{
-				// First start:
-				// * If there is a "class without source" type - handle this and revert "class" to
-				// the default handler.
-				// * Else register as the default handler for "class"
-
-				if (classNoSource != null)
+				if (mapping != null)
 				{
-					// Got a "class without source" type - default to handle this and un-default from
-					// the "class" type
-					registry.setDefaultEditor("." + classNoSource.getExtension(), EDITOR_ID);
-
-					if (classPlain != null)
+					IEditorDescriptor defaultEditor = mapping.getDefaultEditor();
+					if ((defaultEditor == null) ||
+					    (defaultEditor.getId().startsWith(JD_EDITOR_ID)) ||
+					    (defaultEditor.getId().equals(EDITOR_ID)))
 					{
-						if (jdtClassViewer != null)
-						{
-							// Restore the default class viewer as the default "class with source" viewer
-							registry.setDefaultEditor("." + classPlain.getExtension(), JDT_EDITOR_ID);
-						}
-
-						for (IEditorDescriptor editorDesc : classPlain.getEditors())
-						{
-							if (editorDesc.getId().startsWith(JD_EDITOR_ID))
-							{
-								// Unmap the default JD Eclipse editor
-								((FileEditorMapping)classPlain).removeEditor((EditorDescriptor) editorDesc);
-							}
-						}
+						registry.setDefaultEditor("." + mapping.getExtension(), JDT_EDITOR_ID);
 					}
-				}
-				else if (classPlain != null)
-				{
-					// Only got a class file type - default to decompile this
-					registry.setDefaultEditor("." + classPlain.getExtension(), EDITOR_ID);
-				}
-			}
-			else
-			{
-				// Other starts:
-				// * Grab default handler status from the standard JD editor
 
-				for (IFileEditorMapping mapping : new IFileEditorMapping[] {classNoSource, classPlain})
-				{
-					if (mapping != null)
+					// Unmap the JD-Eclipse and JD-Eclipse-Realign editors
+					for (IEditorDescriptor editor : mapping.getEditors())
 					{
-						IEditorDescriptor defaultEditor = mapping.getDefaultEditor();
-						if ((defaultEditor == null) ||
-						    (defaultEditor.getId().startsWith(JD_EDITOR_ID)))
+						if ((editor.getId().startsWith(JD_EDITOR_ID)) ||
+							(editor.getId().equals(EDITOR_ID)))
 						{
-							registry.setDefaultEditor("." + mapping.getExtension(), EDITOR_ID);
+							((FileEditorMapping)mapping).removeEditor((EditorDescriptor) editor);
 						}
 					}
 				}
