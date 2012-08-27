@@ -19,19 +19,25 @@ title: Home
 <p>Getting decompiled source for all the classes in a jar is as simple as right clicking a class and enabling decompilation.
 
 <ol>
-<li>When there is no source attached and decompilation is disabled:
+<li>When decompilation is disabled:
 
 <p><img src="img/jde_disabled.png">
 
-<li>When there is no source attached and decompilation is enabled:
+<li>When decompilation is enabled:
 
 <p><img src="img/jde_enabled.png">
 
-<li>When there is source attached already, if you want to get decompiled source you must first 
-manually update the attached source to remove the source attachment:
+<li>You can also right click on a package:
 
-<p><img src="img/jde_attached.png">
+<p><img src="img/jde_package_enabled.png">
+
+<li>Or you can right click on a jar:
+
+<p><img src="img/jde_jar_enabled.png">
+
 </ol>
+
+<p>NOTE: You will only be given the options to attach source or decompiled source if you have selected a <b>single</b> class, package or jar.
 
 <p>Further details about how this plugin works can be found <a href="http://mchr3k-coding.blogspot.co.uk/2012/08/jd-eclipse-realign-source-lifetime.html">on my blog</a>.
 
@@ -40,6 +46,12 @@ manually update the attached source to remove the source attachment:
 <h2>Features</h2>
 
 <p>This project adds the following:
+
+<h3>28/08/2012 (1.0.9)</h3>
+
+<ul>
+<li>Resolve <a href="https://github.com/mchr3k/jdeclipse-realign/issues/5">issue 5</a>. Enable context menu in Project Explorer, allow one click enable decompilation, enable context menu on packages and jars.
+</ul>
 
 <h3>08/08/2012 (1.0.8)</h3>
 
