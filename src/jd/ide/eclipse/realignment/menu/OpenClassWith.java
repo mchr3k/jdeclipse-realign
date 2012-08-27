@@ -7,6 +7,7 @@ import java.util.Enumeration;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.atomic.AtomicReference;
 
 import jd.ide.eclipse.JavaDecompilerPlugin;
 import jd.ide.eclipse.realignment.Startup;
@@ -29,6 +30,7 @@ import org.eclipse.jdt.core.IJavaElement;
 import org.eclipse.jdt.core.IJavaElementDelta;
 import org.eclipse.jdt.core.IJavaProject;
 import org.eclipse.jdt.core.IOpenable;
+import org.eclipse.jdt.core.IPackageFragment;
 import org.eclipse.jdt.core.IPackageFragmentRoot;
 import org.eclipse.jdt.core.JavaCore;
 import org.eclipse.jdt.core.JavaModelException;
@@ -40,6 +42,7 @@ import org.eclipse.jdt.internal.core.PackageFragmentRoot;
 import org.eclipse.jdt.internal.core.SourceMapper;
 import org.eclipse.jdt.internal.corext.util.JavaModelUtil;
 import org.eclipse.jdt.internal.ui.javaeditor.EditorUtility;
+import org.eclipse.jdt.internal.ui.wizards.buildpaths.CPListElement;
 import org.eclipse.jdt.internal.ui.wizards.buildpaths.SourceAttachmentBlock;
 import org.eclipse.jdt.ui.wizards.BuildPathDialogAccess;
 import org.eclipse.jface.action.Action;
@@ -72,12 +75,12 @@ public class OpenClassWith extends ExtensionContributionFactory {
 
 	private final class OpenClassesAction extends Action {
 		private final IEditorDescriptor classEditor;
-		private final ISelectionService selService;
+		private final List<IClassFile> classes;
 
 		private OpenClassesAction(IEditorDescriptor classEditor,
-				ISelectionService selService) {
+				                  List<IClassFile> classes) {
 			this.classEditor = classEditor;
-			this.selService = selService;
+			this.classes = classes;
 		}
 
 		@Override
@@ -99,9 +102,6 @@ public class OpenClassWith extends ExtensionContributionFactory {
 			IWorkbenchPage page = window.getActivePage();
 			if (page == null)
 				return;
-
-			// Get selection
-			List<IClassFile> classes = getSelectedClasses(selService);
 
 			// Load each IClassFile into the selected editor
 			for (IClassFile classfile : classes)
@@ -140,66 +140,73 @@ public class OpenClassWith extends ExtensionContributionFactory {
 		final ISelectionService selService = (ISelectionService) serviceLocator.getService(ISelectionService.class);
 
 		// Define a dynamic set of submenu entries
-        IContributionItem dynamicItems = new CompoundContributionItem(
-                "jd.ide.eclipse.realignment.test.items") {
+        String dynamicMenuId = "jd.ide.eclipse.realignment.items";
+		IContributionItem dynamicItems = new CompoundContributionItem(
+                dynamicMenuId) {
             protected IContributionItem[] getContributionItems() {
 
             	// Get the list of editors that can open a class file
             	IEditorRegistry registry =
  			           PlatformUI.getWorkbench().getEditorRegistry();
 
-            	// If a single class has been selected - add space for a separator
-            	// and an attach source dialog
-            	boolean singleSelection = isSingleClassSelection(selService);
+            	// Get the current selections and return if nothing is selected
+            	Iterator<?> selections = getSelections(selService);
+            	if (selections == null)
+            	  return new IContributionItem[0];
 
-            	// Fill in editor item
+            	// Extract selections
+            	final List<IJavaElement> elements = getSelectedElements(selService, IJavaElement.class);
+            	final List<IClassFile> classes = getSelectedElements(selService, IClassFile.class);
+
+            	// Attempt to find root
+            	final PackageFragmentRoot root;
+                if (elements.size() > 0)
+                {
+	                root = getRoot(elements.get(0));
+                }
+                else
+                {
+                	root = null;
+                }
+
+            	// List of menu items
                 List<IContributionItem> list = new ArrayList<IContributionItem>();
 
-                IEditorDescriptor jdtClassViewer = registry.findEditor(Startup.JDT_EDITOR_ID);
-                list.add(new ActionContributionItem(new OpenClassesAction(jdtClassViewer, selService)));
-
-                if (singleSelection)
+                if (classes.size() > 0)
                 {
-	                list.add(new Separator());
+	                IEditorDescriptor jdtClassViewer = registry.findEditor(Startup.JDT_EDITOR_ID);
+	                list.add(new ActionContributionItem(new OpenClassesAction(jdtClassViewer, classes)));
+                }
 
-	                boolean sourceAttached = false;
-	                PackageFragmentRoot root = getRoot(selService);
-	                if (root != null)
-	                {
-	                	IClasspathEntry entry = getClasspathEntry(root);
-	                	sourceAttached = (entry.getSourceAttachmentPath() != null);
-	                }
+                if ((root != null) && (classes.size() <= 1))
+                {
+                	if (list.size() > 0)
+                	{
+                		list.add(new Separator());
+                	}
 
-	                if (!sourceAttached)
+	                //if (!sourceAttached)
 	                {
-		                list.add(new ActionContributionItem(new Action("Enable Decompilation", IAction.AS_CHECK_BOX) {
+		                list.add(new ActionContributionItem(new Action("Decompiled Source", IAction.AS_CHECK_BOX) {
 		                	{
-		                		PackageFragmentRoot root = getRoot(selService);
 		                		setChecked(isDecompilerAttached(root));
 		                	}
 
 		                	@Override
 		                	public void run() {
-		                		List<IClassFile> classes = getSelectedClasses(selService);
-		                		IClassFile classFile = classes.get(0);
-		                		PackageFragmentRoot root = getRoot(selService);
-		                		if (root != null)
-		                		{
-		                			doDecompilerAttach(root, classFile);
+		                		if (root != null) {
+		                			doDecompilerAttach(root);
 		                		}
 		                	}
 						}));
 	                }
-	                final boolean fSourceAttached = sourceAttached;
 	                list.add(new ActionContributionItem(new Action() {
 	                	@Override
 	                	public String getText() {
-	                		return fSourceAttached ? "Update Attached Source..." :
-	                			                     "Attach Source...";
+	                		return "Attach Source...";
 	                	}
 	                	@Override
 	                	public void run() {
-	                		PackageFragmentRoot root = getRoot(selService);
 	                		if (root != null)
 	                		{
 	                			doSourceAttach(root);
@@ -212,9 +219,13 @@ public class OpenClassWith extends ExtensionContributionFactory {
             }
         };
 
+        // Determine menu name
+        List<IClassFile> selectedClasses = getSelectedElements(selService, IClassFile.class);
+        boolean openClassWith = (selectedClasses.size() > 0);
+        String menuTitle = openClassWith ? "Open Class With" : "Attach Source";
+
 		// Define dynamic submenu
-        MenuManager submenu = new MenuManager("Open Class With",
-                "jd.ide.eclipse.realignment.test.menu");
+        MenuManager submenu = new MenuManager(menuTitle, dynamicMenuId);
         submenu.add(dynamicItems);
 
         // Add the submenu and show it when classes are selected
@@ -222,9 +233,9 @@ public class OpenClassWith extends ExtensionContributionFactory {
 			@Override
 			public EvaluationResult evaluate(IEvaluationContext context)
 					throws CoreException {
-				boolean classSelection = isMenuVisible(selService);
+				boolean menuVisible = isMenuVisible(selService);
 
-				if (classSelection)
+				if (menuVisible)
 					return EvaluationResult.TRUE;
 
 			    return EvaluationResult.FALSE;
@@ -244,7 +255,7 @@ public class OpenClassWith extends ExtensionContributionFactory {
 		return false;
 	}
 
-	private void doDecompilerAttach(PackageFragmentRoot root, IClassFile classFile)
+	private void doDecompilerAttach(PackageFragmentRoot root)
 	{
 		try
 		{
@@ -252,12 +263,28 @@ public class OpenClassWith extends ExtensionContributionFactory {
 
 			if (existingMapper instanceof RealignmentJDSourceMapper)
 			{
+				// Remove decompiler attachment
 				RealignmentJDSourceMapper jdSourceMapper = (RealignmentJDSourceMapper) existingMapper;
 				root.setSourceMapper(null);
 				RealignmentJDSourceMapper.clearDecompiled(jdSourceMapper);
 			}
 			else
 			{
+				// Prepare to add decompiler attachment by removing any existing source
+				// attachment
+				if (root.getSourceAttachmentPath() != null)
+				{
+					AtomicReference<IPath> containerPath = new AtomicReference<IPath>();
+					IClasspathEntry entry = getClasspathEntry(root, containerPath);
+					CPListElement cpElement = CPListElement.createFromExisting(entry, root.getJavaProject());
+					cpElement.setAttribute(CPListElement.SOURCEATTACHMENT, null);
+
+					Shell shell = PlatformUI.getWorkbench().getActiveWorkbenchWindow().getShell();
+					applySourceAttachment(shell, cpElement.getClasspathEntry(),
+							              root.getJavaProject(), containerPath.get(),
+							              entry.getReferencingEntry() != null);
+				}
+
 				// Source copied from
 				// jd.ide.eclipse.editors.JDClassFileEditor
 
@@ -401,7 +428,7 @@ public class OpenClassWith extends ExtensionContributionFactory {
 		}
 	}
 
-	private IClasspathEntry getClasspathEntry(PackageFragmentRoot root)
+	private IClasspathEntry getClasspathEntry(PackageFragmentRoot root, AtomicReference<IPath> path)
 	{
 		// Source copied from
 		// org.eclipse.jdt.internal.ui.javaeditor.ClassFileEditor$SourceAttachmentForm
@@ -450,6 +477,8 @@ public class OpenClassWith extends ExtensionContributionFactory {
 			return null;
 		}
 
+		path.set(containerPath);
+
 		return entry;
 	}
 
@@ -467,74 +496,64 @@ public class OpenClassWith extends ExtensionContributionFactory {
 	}
 
 	private boolean isMenuVisible(ISelectionService selService) {
-		ISelection selection = selService.getSelection();
 
-		if (selection != null)
+		Iterator<?> selections = getSelections(selService);
+
+		boolean atLeastOneSelection = false;
+		boolean allClasses = true;
+		boolean singlePackageOrRoot = false;
+
+		while ((selections != null) && selections.hasNext())
 		{
-			if (selection instanceof IStructuredSelection)
-			{
-				IStructuredSelection structuredSelection = (IStructuredSelection) selection;
-				Iterator<?> selections = structuredSelection.iterator();
+			atLeastOneSelection = true;
 
-				while (selections.hasNext())
-				{
-					Object select = selections.next();
+			Object select = selections.next();
 
-					if (!(select instanceof IClassFile))
-						return false;
-				}
+			if (!(select instanceof IClassFile)) {
+				allClasses = false;
+			}
+
+			if (((select instanceof IPackageFragment) || (select instanceof IPackageFragmentRoot) &&
+				(!selections.hasNext()))) {
+				singlePackageOrRoot = true;
 			}
 		}
 
-    	IEditorRegistry registry =
-		           PlatformUI.getWorkbench().getEditorRegistry();
-		IEditorDescriptor[] classEditors = registry.getEditors("example.class");
-		if (classEditors.length == 0)
-			return false;
-
-		return true;
-	}
-
-	private List<IClassFile> getSelectedClasses(ISelectionService selService) {
-		ISelection selection = selService.getSelection();
-
-		List<IClassFile> classes = new ArrayList<IClassFile>();
-
-		if (selection != null)
+		if (atLeastOneSelection)
 		{
-			if (selection instanceof IStructuredSelection)
+			if (allClasses || singlePackageOrRoot)
 			{
-				IStructuredSelection structuredSelection = (IStructuredSelection) selection;
-				Iterator<?> selections = structuredSelection.iterator();
-
-				while (selections.hasNext())
-				{
-					Object select = selections.next();
-
-					if (select instanceof IClassFile)
-						classes.add((IClassFile)select);
-				}
+				System.out.println("Menu visible: true");
+				return true;
 			}
 		}
 
-		return classes;
+		System.out.println("Menu visible: false");
+		return false;
 	}
 
-	private PackageFragmentRoot getRoot(final ISelectionService selService) {
-		List<IClassFile> classes = getSelectedClasses(selService);
-		IClassFile classFile = classes.get(0);
+	@SuppressWarnings("unchecked")
+	private <T> List<T> getSelectedElements(ISelectionService selService, Class<T> eleClass) {
 
-		PackageFragmentRoot root = getRoot(classFile);
+		Iterator<?> selections = getSelections(selService);
+		List<T> elements = new ArrayList<T>();
 
-		return root;
+		while ((selections != null) && selections.hasNext())
+		{
+			Object select = selections.next();
+
+			if (eleClass.isInstance(select))
+				elements.add((T)select);
+		}
+
+		return elements;
 	}
 
-	private PackageFragmentRoot getRoot(IClassFile classFile) {
+	private PackageFragmentRoot getRoot(IJavaElement javaElement) {
 
 		PackageFragmentRoot root = null;
 
 		// Search package fragment root.
-		IJavaElement javaElement = classFile.getParent();
 		while ((javaElement != null) &&
 			   (javaElement.getElementType() !=
 				   IJavaElement.PACKAGE_FRAGMENT_ROOT))
@@ -542,7 +561,7 @@ public class OpenClassWith extends ExtensionContributionFactory {
 			javaElement = javaElement.getParent();
 		}
 
-		// Attach source to the root
+		// Return the root
 		if ((javaElement != null) &&
 			(javaElement instanceof PackageFragmentRoot))
 		{
@@ -551,7 +570,7 @@ public class OpenClassWith extends ExtensionContributionFactory {
 		return root;
 	}
 
-	private boolean isSingleClassSelection(ISelectionService selService) {
+	private Iterator<?> getSelections(ISelectionService selService) {
 		ISelection selection = selService.getSelection();
 
 		if (selection != null)
@@ -559,21 +578,11 @@ public class OpenClassWith extends ExtensionContributionFactory {
 			if (selection instanceof IStructuredSelection)
 			{
 				IStructuredSelection structuredSelection = (IStructuredSelection) selection;
-				Iterator<?> selections = structuredSelection.iterator();
-
-				while (selections.hasNext())
-				{
-					Object select = selections.next();
-
-					if ((select instanceof IClassFile) && (!selections.hasNext()))
-						return true;
-					else
-						return false;
-				}
+				return structuredSelection.iterator();
 			}
 		}
 
-		return false;
+		return null;
 	}
 
 }
