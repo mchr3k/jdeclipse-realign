@@ -71,518 +71,611 @@ import org.eclipse.ui.menus.IContributionRoot;
 import org.eclipse.ui.services.IServiceLocator;
 
 @SuppressWarnings("restriction")
-public class OpenClassWith extends ExtensionContributionFactory {
+public class OpenClassWith extends ExtensionContributionFactory
+{
 
-	private final class OpenClassesAction extends Action {
-		private final IEditorDescriptor classEditor;
-		private final List<IClassFile> classes;
+  private final class OpenClassesAction extends Action
+  {
+    private final IEditorDescriptor classEditor;
+    private final List<IClassFile> classes;
 
-		private OpenClassesAction(IEditorDescriptor classEditor,
-				                  List<IClassFile> classes) {
-			this.classEditor = classEditor;
-			this.classes = classes;
-		}
+    private OpenClassesAction(IEditorDescriptor classEditor,
+        List<IClassFile> classes)
+    {
+      this.classEditor = classEditor;
+      this.classes = classes;
+    }
 
-		@Override
-		public String getText() {
-			return classEditor.getLabel();
-		}
+    @Override
+    public String getText()
+    {
+      return classEditor.getLabel();
+    }
 
-		@Override
-		public ImageDescriptor getImageDescriptor() {
-			return classEditor.getImageDescriptor();
-		}
+    @Override
+    public ImageDescriptor getImageDescriptor()
+    {
+      return classEditor.getImageDescriptor();
+    }
 
-		@Override
-		public void run() {
-			// Get UI refs
-			IWorkbenchWindow window = PlatformUI.getWorkbench().getActiveWorkbenchWindow();
-			if (window == null)
-				return;
-			IWorkbenchPage page = window.getActivePage();
-			if (page == null)
-				return;
+    @Override
+    public void run()
+    {
+      // Get UI refs
+      IWorkbenchWindow window = PlatformUI.getWorkbench()
+          .getActiveWorkbenchWindow();
+      if (window == null)
+        return;
+      IWorkbenchPage page = window.getActivePage();
+      if (page == null)
+        return;
 
-			// Load each IClassFile into the selected editor
-			for (IClassFile classfile : classes)
-			{
-				// Convert the IClassFile to an IEditorInput
-				IEditorInput input = EditorUtility.getEditorInput(classfile);
+      // Load each IClassFile into the selected editor
+      for (IClassFile classfile : classes)
+      {
+        // Convert the IClassFile to an IEditorInput
+        IEditorInput input = EditorUtility.getEditorInput(classfile);
 
-				try {
-					IEditorPart openEditor = page.openEditor(input, classEditor.getId(), true);
+        try
+        {
+          IEditorPart openEditor = page.openEditor(input, classEditor.getId(),
+              true);
 
-					if ((openEditor != null) &&
-						(!classEditor.getId().equals(openEditor.getEditorSite().getId())))
-				    {
-						// An existing editor already has this class open. Close it
-						// and re-open in the correct editor
-						if (!openEditor.isDirty())
-						{
-							openEditor.getSite().getPage().closeEditor(openEditor, false);
-							page.openEditor(input, classEditor.getId(), true);
-						}
-				    }
-
-				} catch (PartInitException e) {
-					JavaDecompilerPlugin.getDefault().getLog().log(new Status(
-							Status.ERROR, JavaDecompilerPlugin.PLUGIN_ID,
-							0, e.getMessage(), e));
-				}
-			}
-		}
-	}
-
-	@Override
-	public void createContributionItems(IServiceLocator serviceLocator,
-			IContributionRoot additions) {
-
-		final ISelectionService selService = (ISelectionService) serviceLocator.getService(ISelectionService.class);
-
-		// Define a dynamic set of submenu entries
-        String dynamicMenuId = "jd.ide.eclipse.realignment.items";
-		IContributionItem dynamicItems = new CompoundContributionItem(
-                dynamicMenuId) {
-            protected IContributionItem[] getContributionItems() {
-
-            	// Get the list of editors that can open a class file
-            	IEditorRegistry registry =
- 			           PlatformUI.getWorkbench().getEditorRegistry();
-
-            	// Get the current selections and return if nothing is selected
-            	Iterator<?> selections = getSelections(selService);
-            	if (selections == null)
-            	  return new IContributionItem[0];
-
-            	// Extract selections
-            	final List<IJavaElement> elements = getSelectedElements(selService, IJavaElement.class);
-            	final List<IClassFile> classes = getSelectedElements(selService, IClassFile.class);
-
-            	// Attempt to find root
-            	final PackageFragmentRoot root;
-                if (elements.size() > 0)
-                {
-	                root = getRoot(elements.get(0));
-                }
-                else
-                {
-                	root = null;
-                }
-
-            	// List of menu items
-                List<IContributionItem> list = new ArrayList<IContributionItem>();
-
-                if (classes.size() > 0)
-                {
-	                IEditorDescriptor jdtClassViewer = registry.findEditor(Startup.JDT_EDITOR_ID);
-	                list.add(new ActionContributionItem(new OpenClassesAction(jdtClassViewer, classes)));
-                }
-
-                if ((root != null) && (classes.size() <= 1))
-                {
-                	if (list.size() > 0)
-                	{
-                		list.add(new Separator());
-                	}
-
-	                //if (!sourceAttached)
-	                {
-		                list.add(new ActionContributionItem(new Action("Decompiled Source", IAction.AS_CHECK_BOX) {
-		                	{
-		                		setChecked(isDecompilerAttached(root));
-		                	}
-
-		                	@Override
-		                	public void run() {
-		                		if (root != null) {
-		                			doDecompilerAttach(root);
-		                		}
-		                	}
-						}));
-	                }
-	                list.add(new ActionContributionItem(new Action() {
-	                	@Override
-	                	public String getText() {
-	                		return "Attach Source...";
-	                	}
-	                	@Override
-	                	public void run() {
-	                		if (root != null)
-	                		{
-	                			doSourceAttach(root);
-	                		}
-	                	}
-					}));
-                }
-
-                return list.toArray(new IContributionItem[list.size()]);
+          if ((openEditor != null)
+              && (!classEditor.getId().equals(
+                  openEditor.getEditorSite().getId())))
+          {
+            // An existing editor already has this class open. Close it
+            // and re-open in the correct editor
+            if (!openEditor.isDirty())
+            {
+              openEditor.getSite().getPage().closeEditor(openEditor, false);
+              page.openEditor(input, classEditor.getId(), true);
             }
-        };
+          }
 
-        // Determine menu name
-        List<IClassFile> selectedClasses = getSelectedElements(selService, IClassFile.class);
-        boolean openClassWith = (selectedClasses.size() > 0);
-        String menuTitle = openClassWith ? "Open Class With" : "Attach Source";
+        }
+        catch (PartInitException e)
+        {
+          JavaDecompilerPlugin
+              .getDefault()
+              .getLog()
+              .log(
+                  new Status(Status.ERROR, JavaDecompilerPlugin.PLUGIN_ID, 0, e
+                      .getMessage(), e));
+        }
+      }
+    }
+  }
 
-		// Define dynamic submenu
-        MenuManager submenu = new MenuManager(menuTitle, dynamicMenuId);
-        submenu.add(dynamicItems);
+  @Override
+  public void createContributionItems(IServiceLocator serviceLocator,
+      IContributionRoot additions)
+  {
 
-        // Add the submenu and show it when classes are selected
-        additions.addContributionItem(submenu, new Expression() {
-			@Override
-			public EvaluationResult evaluate(IEvaluationContext context)
-					throws CoreException {
-				boolean menuVisible = isMenuVisible(selService);
+    final ISelectionService selService = (ISelectionService) serviceLocator
+        .getService(ISelectionService.class);
 
-				if (menuVisible)
-					return EvaluationResult.TRUE;
+    // Define a dynamic set of submenu entries
+    String dynamicMenuId = "jd.ide.eclipse.realignment.items";
+    IContributionItem dynamicItems = new CompoundContributionItem(dynamicMenuId)
+    {
+      protected IContributionItem[] getContributionItems()
+      {
 
-			    return EvaluationResult.FALSE;
-			}
-		});
-	}
+        // Get the list of editors that can open a class file
+        IEditorRegistry registry = PlatformUI.getWorkbench()
+            .getEditorRegistry();
 
-	private boolean isDecompilerAttached(PackageFragmentRoot root)
-	{
-		if (root != null)
-		{
-			if (root.getSourceMapper() instanceof RealignmentJDSourceMapper)
-			{
-				return true;
-			}
-		}
-		return false;
-	}
+        // Get the current selections and return if nothing is selected
+        Iterator<?> selections = getSelections(selService);
+        if (selections == null)
+          return new IContributionItem[0];
 
-	private void doDecompilerAttach(PackageFragmentRoot root)
-	{
-		try
-		{
-			SourceMapper existingMapper = root.getSourceMapper();
+        // Extract selections
+        final List<IJavaElement> elements = getSelectedElements(selService,
+            IJavaElement.class);
+        final List<IClassFile> classes = getSelectedElements(selService,
+            IClassFile.class);
 
-			if (existingMapper instanceof RealignmentJDSourceMapper)
-			{
-				// Remove decompiler attachment
-				RealignmentJDSourceMapper jdSourceMapper = (RealignmentJDSourceMapper) existingMapper;
-				root.setSourceMapper(null);
-				RealignmentJDSourceMapper.clearDecompiled(jdSourceMapper);
-			}
-			else
-			{
-				// Prepare to add decompiler attachment by removing any existing source
-				// attachment
-				if (root.getSourceAttachmentPath() != null)
-				{
-					AtomicReference<IPath> containerPath = new AtomicReference<IPath>();
-					IClasspathEntry entry = getClasspathEntry(root, containerPath);
-					CPListElement cpElement = CPListElement.createFromExisting(entry, root.getJavaProject());
-					cpElement.setAttribute(CPListElement.SOURCEATTACHMENT, null);
+        // Attempt to find root
+        final PackageFragmentRoot root;
+        if (elements.size() > 0)
+        {
+          root = getRoot(elements.get(0));
+        }
+        else
+        {
+          root = null;
+        }
 
-					Shell shell = PlatformUI.getWorkbench().getActiveWorkbenchWindow().getShell();
-					applySourceAttachment(shell, cpElement.getClasspathEntry(),
-							              root.getJavaProject(), containerPath.get(),
-							              entry.getReferencingEntry() != null);
-				}
+        // List of menu items
+        List<IContributionItem> list = new ArrayList<IContributionItem>();
 
-				// Source copied from
-				// jd.ide.eclipse.editors.JDClassFileEditor
+        if (classes.size() > 0)
+        {
+          IEditorDescriptor jdtClassViewer = registry
+              .findEditor(Startup.JDT_EDITOR_ID);
+          list.add(new ActionContributionItem(new OpenClassesAction(
+              jdtClassViewer, classes)));
+        }
 
-				// The location of the archive file containing classes.
-				IPath classePath = root.getPath();
-				// The location of the archive file containing source.
-				IPath sourcePath = root.getSourceAttachmentPath();
-				if (sourcePath == null) sourcePath = classePath;
-				// Specifies the location of the package fragment root
-				// within the zip (empty specifies the default root).
-				IPath sourceAttachmentRootPath =
-					root.getSourceAttachmentRootPath();
-				String sourceRootPath;
-				if (sourceAttachmentRootPath == null)
-				{
-					sourceRootPath = null;
-				}
-				else
-				{
-					sourceRootPath = sourceAttachmentRootPath.toString();
-					if ((sourceRootPath != null) &&
-						(sourceRootPath.length() == 0))
-						sourceRootPath = null;
-				}
-				Map<?,?> options = root.getJavaProject().getOptions(true);
+        if ((root != null) && (classes.size() <= 1))
+        {
+          if (list.size() > 0)
+          {
+            list.add(new Separator());
+          }
 
-				// Create source mapper
-				SourceMapper mapper = RealignmentJDSourceMapper.newSourceMapper(classePath, sourcePath, sourceRootPath, options);
-				root.setSourceMapper(mapper);
+          // if (!sourceAttached)
+          {
+            list.add(new ActionContributionItem(new Action("Decompiled Source",
+                IAction.AS_CHECK_BOX)
+            {
+              {
+                setChecked(isDecompilerAttached(root));
+              }
 
-				// Remove empty buffer
-				try
-				{
-					Method method = BufferManager.class.getDeclaredMethod(
-							"removeBuffer", new Class[] {IBuffer.class});
-						method.setAccessible(true);
+              @Override
+              public void run()
+              {
+                if (root != null)
+                {
+                  doDecompilerAttach(root);
+                }
+              }
+            }));
+          }
+          list.add(new ActionContributionItem(new Action()
+          {
+            @Override
+            public String getText()
+            {
+              return "Attach Source...";
+            }
 
-					Enumeration<?> openBuffers = BufferManager.getDefaultBufferManager().getOpenBuffers();
-					while (openBuffers.hasMoreElements())
-					{
-						IBuffer buffer = (IBuffer) openBuffers.nextElement();
-						IOpenable owner = buffer.getOwner();
+            @Override
+            public void run()
+            {
+              if (root != null)
+              {
+                doSourceAttach(root);
+              }
+            }
+          }));
+        }
 
-						if (owner instanceof IClassFile)
-						{
-							IClassFile bufClassFile = (IClassFile) owner;
-							PackageFragmentRoot bufRoot = getRoot(bufClassFile);
+        return list.toArray(new IContributionItem[list.size()]);
+      }
+    };
 
-							if (root.equals(bufRoot))
-							{
-								// Remove any empty buffer
-								method.invoke(
-									BufferManager.getDefaultBufferManager(),
-									new Object[] {buffer});
-							}
-						}
-					}
-				}
-				catch (Exception e)
-				{
-					JavaDecompilerPlugin.getDefault().getLog().log(new Status(
-							Status.ERROR, JavaDecompilerPlugin.PLUGIN_ID,
-							0, e.getMessage(), e));
-				}
-			}
+    // Determine menu name
+    List<IClassFile> selectedClasses = getSelectedElements(selService,
+        IClassFile.class);
+    boolean openClassWith = (selectedClasses.size() > 0);
+    String menuTitle = openClassWith ? "Open Class With" : "Attach Source";
 
-			// Construct a delta to indicate that the source attachment has changed
-			JavaModelManager modelManager = JavaModelManager.getJavaModelManager();
-			JavaElementDelta delta = new JavaElementDelta(modelManager.getJavaModel());
-			delta.changed(root.getJavaProject(), IJavaElementDelta.F_RESOLVED_CLASSPATH_CHANGED);
-			delta.changed(root, IJavaElementDelta.F_SOURCEATTACHED);
+    // Define dynamic submenu
+    MenuManager submenu = new MenuManager(menuTitle, dynamicMenuId);
+    submenu.add(dynamicItems);
 
-			// Notify Eclipse that the source attachment has changed
-			DeltaProcessor deltaProcessor = modelManager.getDeltaProcessor();
-			deltaProcessor.fire(delta, ElementChangedEvent.POST_CHANGE);
-		}
-		catch (CoreException e)
-		{
-			JavaDecompilerPlugin.getDefault().getLog().log(new Status(
-				Status.ERROR, JavaDecompilerPlugin.PLUGIN_ID,
-				0, e.getMessage(), e));
-		}
-	}
+    // Add the submenu and show it when classes are selected
+    additions.addContributionItem(submenu, new Expression()
+    {
+      @Override
+      public EvaluationResult evaluate(IEvaluationContext context)
+          throws CoreException
+      {
+        boolean menuVisible = isMenuVisible(selService);
 
-	private void doSourceAttach(PackageFragmentRoot root)
-	{
-		// Source copied from
-		// org.eclipse.jdt.internal.ui.javaeditor.ClassFileEditor$SourceAttachmentForm
+        if (menuVisible)
+          return EvaluationResult.TRUE;
 
-		IClasspathEntry entry;
-		try {
-			entry= JavaModelUtil.getClasspathEntry(root);
-		} catch (JavaModelException ex) {
-			if (ex.isDoesNotExist())
-				entry= null;
-			else
-				return;
-		}
-		IPath containerPath= null;
-		IJavaProject jproject = null;
+        return EvaluationResult.FALSE;
+      }
+    });
+  }
 
-		try
-		{
-			if (entry == null || root.getKind() != IPackageFragmentRoot.K_BINARY) {
-				return;
-			}
+  private boolean isDecompilerAttached(PackageFragmentRoot root)
+  {
+    if (root != null)
+    {
+      if (root.getSourceMapper() instanceof RealignmentJDSourceMapper)
+      {
+        return true;
+      }
+    }
+    return false;
+  }
 
-			jproject= root.getJavaProject();
-			if (entry.getEntryKind() == IClasspathEntry.CPE_CONTAINER) {
-				containerPath= entry.getPath();
-				ClasspathContainerInitializer initializer= JavaCore.getClasspathContainerInitializer(containerPath.segment(0));
-				IClasspathContainer container= JavaCore.getClasspathContainer(containerPath, jproject);
-				if (initializer == null || container == null) {
-					return;
-				}
-				IStatus status= initializer.getSourceAttachmentStatus(containerPath, jproject);
-				if (status.getCode() == ClasspathContainerInitializer.ATTRIBUTE_NOT_SUPPORTED) {
-					return;
-				}
-				if (status.getCode() == ClasspathContainerInitializer.ATTRIBUTE_READ_ONLY) {
-					return;
-				}
-				entry= JavaModelUtil.findEntryInContainer(container, root.getPath());
-			}
-		}
-		catch (JavaModelException e)
-		{
-			JavaDecompilerPlugin.getDefault().getLog().log(new Status(
-					Status.ERROR, JavaDecompilerPlugin.PLUGIN_ID,
-					0, e.getMessage(), e));
-			return;
-		}
+  private void doDecompilerAttach(PackageFragmentRoot root)
+  {
+    try
+    {
+      SourceMapper existingMapper = root.getSourceMapper();
 
-		if (entry == null)
-			return;
+      if (existingMapper instanceof RealignmentJDSourceMapper)
+      {
+        // Remove decompiler attachment
+        RealignmentJDSourceMapper jdSourceMapper = (RealignmentJDSourceMapper) existingMapper;
+        root.setSourceMapper(null);
+        RealignmentJDSourceMapper.clearDecompiled(jdSourceMapper);
+      }
+      else
+      {
+        // Prepare to add decompiler attachment by removing any existing source
+        // attachment
+        if (root.getSourceAttachmentPath() != null)
+        {
+          AtomicReference<IPath> containerPath = new AtomicReference<IPath>();
+          IClasspathEntry entry = getClasspathEntry(root, containerPath);
+          CPListElement cpElement = CPListElement.createFromExisting(entry,
+              root.getJavaProject());
+          cpElement.setAttribute(CPListElement.SOURCEATTACHMENT, null);
 
-		Shell shell = PlatformUI.getWorkbench().getActiveWorkbenchWindow().getShell();
-		IClasspathEntry result= BuildPathDialogAccess.configureSourceAttachment(shell, entry);
-		if (result != null) {
-			applySourceAttachment(shell, result, jproject, containerPath, entry.getReferencingEntry() != null);
-		}
-	}
+          Shell shell = PlatformUI.getWorkbench().getActiveWorkbenchWindow()
+              .getShell();
+          applySourceAttachment(shell, cpElement.getClasspathEntry(),
+              root.getJavaProject(), containerPath.get(),
+              entry.getReferencingEntry() != null);
+        }
 
-	private IClasspathEntry getClasspathEntry(PackageFragmentRoot root, AtomicReference<IPath> path)
-	{
-		// Source copied from
-		// org.eclipse.jdt.internal.ui.javaeditor.ClassFileEditor$SourceAttachmentForm
+        // Source copied from
+        // jd.ide.eclipse.editors.JDClassFileEditor
 
-		IClasspathEntry entry;
-		try {
-			entry= JavaModelUtil.getClasspathEntry(root);
-		} catch (JavaModelException ex) {
-			if (ex.isDoesNotExist())
-				entry= null;
-			else
-				return null;
-		}
-		IPath containerPath= null;
-		IJavaProject jproject = null;
+        // The location of the archive file containing classes.
+        IPath classePath = root.getPath();
+        // The location of the archive file containing source.
+        IPath sourcePath = root.getSourceAttachmentPath();
+        if (sourcePath == null)
+          sourcePath = classePath;
+        // Specifies the location of the package fragment root
+        // within the zip (empty specifies the default root).
+        IPath sourceAttachmentRootPath = root.getSourceAttachmentRootPath();
+        String sourceRootPath;
+        if (sourceAttachmentRootPath == null)
+        {
+          sourceRootPath = null;
+        }
+        else
+        {
+          sourceRootPath = sourceAttachmentRootPath.toString();
+          if ((sourceRootPath != null) && (sourceRootPath.length() == 0))
+            sourceRootPath = null;
+        }
+        Map<?, ?> options = root.getJavaProject().getOptions(true);
 
-		try
-		{
-			if (entry == null || root.getKind() != IPackageFragmentRoot.K_BINARY) {
-				return null;
-			}
+        // Create source mapper
+        SourceMapper mapper = RealignmentJDSourceMapper.newSourceMapper(
+            classePath, sourcePath, sourceRootPath, options);
+        root.setSourceMapper(mapper);
 
-			jproject= root.getJavaProject();
-			if (entry.getEntryKind() == IClasspathEntry.CPE_CONTAINER) {
-				containerPath= entry.getPath();
-				ClasspathContainerInitializer initializer= JavaCore.getClasspathContainerInitializer(containerPath.segment(0));
-				IClasspathContainer container= JavaCore.getClasspathContainer(containerPath, jproject);
-				if (initializer == null || container == null) {
-					return null;
-				}
-				IStatus status= initializer.getSourceAttachmentStatus(containerPath, jproject);
-				if (status.getCode() == ClasspathContainerInitializer.ATTRIBUTE_NOT_SUPPORTED) {
-					return null;
-				}
-				if (status.getCode() == ClasspathContainerInitializer.ATTRIBUTE_READ_ONLY) {
-					return null;
-				}
-				entry= JavaModelUtil.findEntryInContainer(container, root.getPath());
-			}
-		}
-		catch (JavaModelException e)
-		{
-			JavaDecompilerPlugin.getDefault().getLog().log(new Status(
-					Status.ERROR, JavaDecompilerPlugin.PLUGIN_ID,
-					0, e.getMessage(), e));
-			return null;
-		}
+        // Remove empty buffer
+        try
+        {
+          Method method = BufferManager.class.getDeclaredMethod("removeBuffer",
+              new Class[]
+              { IBuffer.class });
+          method.setAccessible(true);
 
-		path.set(containerPath);
+          Enumeration<?> openBuffers = BufferManager.getDefaultBufferManager()
+              .getOpenBuffers();
+          while (openBuffers.hasMoreElements())
+          {
+            IBuffer buffer = (IBuffer) openBuffers.nextElement();
+            IOpenable owner = buffer.getOwner();
 
-		return entry;
-	}
+            if (owner instanceof IClassFile)
+            {
+              IClassFile bufClassFile = (IClassFile) owner;
+              PackageFragmentRoot bufRoot = getRoot(bufClassFile);
 
-	private void applySourceAttachment(Shell shell, IClasspathEntry newEntry, IJavaProject project, IPath containerPath, boolean isReferencedEntry) {
-		try {
-			IRunnableWithProgress runnable= SourceAttachmentBlock.getRunnable(shell, newEntry, project, containerPath, isReferencedEntry);
-			PlatformUI.getWorkbench().getProgressService().run(true, true, runnable);
-		} catch (InvocationTargetException e) {
-			JavaDecompilerPlugin.getDefault().getLog().log(new Status(
-					Status.ERROR, JavaDecompilerPlugin.PLUGIN_ID,
-					0, e.getMessage(), e));
-		} catch (InterruptedException e) {
-			// cancelled
-		}
-	}
+              if (root.equals(bufRoot))
+              {
+                // Remove any empty buffer
+                method.invoke(BufferManager.getDefaultBufferManager(),
+                    new Object[]
+                    { buffer });
+              }
+            }
+          }
+        }
+        catch (Exception e)
+        {
+          JavaDecompilerPlugin
+              .getDefault()
+              .getLog()
+              .log(
+                  new Status(Status.ERROR, JavaDecompilerPlugin.PLUGIN_ID, 0, e
+                      .getMessage(), e));
+        }
+      }
 
-	private boolean isMenuVisible(ISelectionService selService) {
+      // Construct a delta to indicate that the source attachment has changed
+      JavaModelManager modelManager = JavaModelManager.getJavaModelManager();
+      JavaElementDelta delta = new JavaElementDelta(modelManager.getJavaModel());
+      delta.changed(root.getJavaProject(),
+          IJavaElementDelta.F_RESOLVED_CLASSPATH_CHANGED);
+      delta.changed(root, IJavaElementDelta.F_SOURCEATTACHED);
 
-		Iterator<?> selections = getSelections(selService);
+      // Notify Eclipse that the source attachment has changed
+      DeltaProcessor deltaProcessor = modelManager.getDeltaProcessor();
+      deltaProcessor.fire(delta, ElementChangedEvent.POST_CHANGE);
+    }
+    catch (CoreException e)
+    {
+      JavaDecompilerPlugin
+          .getDefault()
+          .getLog()
+          .log(
+              new Status(Status.ERROR, JavaDecompilerPlugin.PLUGIN_ID, 0, e
+                  .getMessage(), e));
+    }
+  }
 
-		boolean atLeastOneSelection = false;
-		boolean allClasses = true;
-		boolean singlePackageOrRoot = false;
+  private void doSourceAttach(PackageFragmentRoot root)
+  {
+    // Source copied from
+    // org.eclipse.jdt.internal.ui.javaeditor.ClassFileEditor$SourceAttachmentForm
 
-		while ((selections != null) && selections.hasNext())
-		{
-			atLeastOneSelection = true;
+    IClasspathEntry entry;
+    try
+    {
+      entry = JavaModelUtil.getClasspathEntry(root);
+    }
+    catch (JavaModelException ex)
+    {
+      if (ex.isDoesNotExist())
+        entry = null;
+      else
+        return;
+    }
+    IPath containerPath = null;
+    IJavaProject jproject = null;
 
-			Object select = selections.next();
+    try
+    {
+      if (entry == null || root.getKind() != IPackageFragmentRoot.K_BINARY)
+      {
+        return;
+      }
 
-			if (!(select instanceof IClassFile)) {
-				allClasses = false;
-			}
+      jproject = root.getJavaProject();
+      if (entry.getEntryKind() == IClasspathEntry.CPE_CONTAINER)
+      {
+        containerPath = entry.getPath();
+        ClasspathContainerInitializer initializer = JavaCore
+            .getClasspathContainerInitializer(containerPath.segment(0));
+        IClasspathContainer container = JavaCore.getClasspathContainer(
+            containerPath, jproject);
+        if (initializer == null || container == null)
+        {
+          return;
+        }
+        IStatus status = initializer.getSourceAttachmentStatus(containerPath,
+            jproject);
+        if (status.getCode() == ClasspathContainerInitializer.ATTRIBUTE_NOT_SUPPORTED)
+        {
+          return;
+        }
+        if (status.getCode() == ClasspathContainerInitializer.ATTRIBUTE_READ_ONLY)
+        {
+          return;
+        }
+        entry = JavaModelUtil.findEntryInContainer(container, root.getPath());
+      }
+    }
+    catch (JavaModelException e)
+    {
+      JavaDecompilerPlugin
+          .getDefault()
+          .getLog()
+          .log(
+              new Status(Status.ERROR, JavaDecompilerPlugin.PLUGIN_ID, 0, e
+                  .getMessage(), e));
+      return;
+    }
 
-			if (((select instanceof IPackageFragment) || (select instanceof IPackageFragmentRoot) &&
-				(!selections.hasNext()))) {
-				singlePackageOrRoot = true;
-			}
-		}
+    if (entry == null)
+      return;
 
-		if (atLeastOneSelection)
-		{
-			if (allClasses || singlePackageOrRoot)
-			{
-				System.out.println("Menu visible: true");
-				return true;
-			}
-		}
+    Shell shell = PlatformUI.getWorkbench().getActiveWorkbenchWindow()
+        .getShell();
+    IClasspathEntry result = BuildPathDialogAccess.configureSourceAttachment(
+        shell, entry);
+    if (result != null)
+    {
+      applySourceAttachment(shell, result, jproject, containerPath,
+          entry.getReferencingEntry() != null);
+    }
+  }
 
-		System.out.println("Menu visible: false");
-		return false;
-	}
+  private IClasspathEntry getClasspathEntry(PackageFragmentRoot root,
+      AtomicReference<IPath> path)
+  {
+    // Source copied from
+    // org.eclipse.jdt.internal.ui.javaeditor.ClassFileEditor$SourceAttachmentForm
 
-	@SuppressWarnings("unchecked")
-	private <T> List<T> getSelectedElements(ISelectionService selService, Class<T> eleClass) {
+    IClasspathEntry entry;
+    try
+    {
+      entry = JavaModelUtil.getClasspathEntry(root);
+    }
+    catch (JavaModelException ex)
+    {
+      if (ex.isDoesNotExist())
+        entry = null;
+      else
+        return null;
+    }
+    IPath containerPath = null;
+    IJavaProject jproject = null;
 
-		Iterator<?> selections = getSelections(selService);
-		List<T> elements = new ArrayList<T>();
+    try
+    {
+      if (entry == null || root.getKind() != IPackageFragmentRoot.K_BINARY)
+      {
+        return null;
+      }
 
-		while ((selections != null) && selections.hasNext())
-		{
-			Object select = selections.next();
+      jproject = root.getJavaProject();
+      if (entry.getEntryKind() == IClasspathEntry.CPE_CONTAINER)
+      {
+        containerPath = entry.getPath();
+        ClasspathContainerInitializer initializer = JavaCore
+            .getClasspathContainerInitializer(containerPath.segment(0));
+        IClasspathContainer container = JavaCore.getClasspathContainer(
+            containerPath, jproject);
+        if (initializer == null || container == null)
+        {
+          return null;
+        }
+        IStatus status = initializer.getSourceAttachmentStatus(containerPath,
+            jproject);
+        if (status.getCode() == ClasspathContainerInitializer.ATTRIBUTE_NOT_SUPPORTED)
+        {
+          return null;
+        }
+        if (status.getCode() == ClasspathContainerInitializer.ATTRIBUTE_READ_ONLY)
+        {
+          return null;
+        }
+        entry = JavaModelUtil.findEntryInContainer(container, root.getPath());
+      }
+    }
+    catch (JavaModelException e)
+    {
+      JavaDecompilerPlugin
+          .getDefault()
+          .getLog()
+          .log(
+              new Status(Status.ERROR, JavaDecompilerPlugin.PLUGIN_ID, 0, e
+                  .getMessage(), e));
+      return null;
+    }
 
-			if (eleClass.isInstance(select))
-				elements.add((T)select);
-		}
+    path.set(containerPath);
 
-		return elements;
-	}
+    return entry;
+  }
 
-	private PackageFragmentRoot getRoot(IJavaElement javaElement) {
+  private void applySourceAttachment(Shell shell, IClasspathEntry newEntry,
+      IJavaProject project, IPath containerPath, boolean isReferencedEntry)
+  {
+    try
+    {
+      IRunnableWithProgress runnable = SourceAttachmentBlock.getRunnable(shell,
+          newEntry, project, containerPath, isReferencedEntry);
+      PlatformUI.getWorkbench().getProgressService().run(true, true, runnable);
+    }
+    catch (InvocationTargetException e)
+    {
+      JavaDecompilerPlugin
+          .getDefault()
+          .getLog()
+          .log(
+              new Status(Status.ERROR, JavaDecompilerPlugin.PLUGIN_ID, 0, e
+                  .getMessage(), e));
+    }
+    catch (InterruptedException e)
+    {
+      // cancelled
+    }
+  }
 
-		PackageFragmentRoot root = null;
+  private boolean isMenuVisible(ISelectionService selService)
+  {
 
-		// Search package fragment root.
-		while ((javaElement != null) &&
-			   (javaElement.getElementType() !=
-				   IJavaElement.PACKAGE_FRAGMENT_ROOT))
-		{
-			javaElement = javaElement.getParent();
-		}
+    Iterator<?> selections = getSelections(selService);
 
-		// Return the root
-		if ((javaElement != null) &&
-			(javaElement instanceof PackageFragmentRoot))
-		{
-			root = (PackageFragmentRoot)javaElement;
-		}
-		return root;
-	}
+    boolean atLeastOneSelection = false;
+    boolean allClasses = true;
+    boolean singlePackageOrRoot = false;
 
-	private Iterator<?> getSelections(ISelectionService selService) {
-		ISelection selection = selService.getSelection();
+    while ((selections != null) && selections.hasNext())
+    {
+      atLeastOneSelection = true;
 
-		if (selection != null)
-		{
-			if (selection instanceof IStructuredSelection)
-			{
-				IStructuredSelection structuredSelection = (IStructuredSelection) selection;
-				return structuredSelection.iterator();
-			}
-		}
+      Object select = selections.next();
 
-		return null;
-	}
+      if (!(select instanceof IClassFile))
+      {
+        allClasses = false;
+      }
+
+      if (((select instanceof IPackageFragment) || (select instanceof IPackageFragmentRoot)
+          && (!selections.hasNext())))
+      {
+        singlePackageOrRoot = true;
+      }
+    }
+
+    if (atLeastOneSelection)
+    {
+      if (allClasses || singlePackageOrRoot)
+      {
+        System.out.println("Menu visible: true");
+        return true;
+      }
+    }
+
+    System.out.println("Menu visible: false");
+    return false;
+  }
+
+  @SuppressWarnings("unchecked")
+  private <T> List<T> getSelectedElements(ISelectionService selService,
+      Class<T> eleClass)
+  {
+
+    Iterator<?> selections = getSelections(selService);
+    List<T> elements = new ArrayList<T>();
+
+    while ((selections != null) && selections.hasNext())
+    {
+      Object select = selections.next();
+
+      if (eleClass.isInstance(select))
+        elements.add((T) select);
+    }
+
+    return elements;
+  }
+
+  private PackageFragmentRoot getRoot(IJavaElement javaElement)
+  {
+
+    PackageFragmentRoot root = null;
+
+    // Search package fragment root.
+    while ((javaElement != null)
+        && (javaElement.getElementType() != IJavaElement.PACKAGE_FRAGMENT_ROOT))
+    {
+      javaElement = javaElement.getParent();
+    }
+
+    // Return the root
+    if ((javaElement != null) && (javaElement instanceof PackageFragmentRoot))
+    {
+      root = (PackageFragmentRoot) javaElement;
+    }
+    return root;
+  }
+
+  private Iterator<?> getSelections(ISelectionService selService)
+  {
+    ISelection selection = selService.getSelection();
+
+    if (selection != null)
+    {
+      if (selection instanceof IStructuredSelection)
+      {
+        IStructuredSelection structuredSelection = (IStructuredSelection) selection;
+        return structuredSelection.iterator();
+      }
+    }
+
+    return null;
+  }
 
 }
