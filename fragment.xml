@@ -19,6 +19,45 @@
             class="jd.ide.eclipse.realignment.menu.OpenClassWith"
             locationURI="popup:org.eclipse.ui.navigator.ProjectExplorer#PopupMenu?before=group.edit">
       </menuContribution>
+      <menuContribution
+            allPopups="false"
+            locationURI="toolbar:org.eclipse.ui.main.toolbar">
+         <toolbar
+               id="jd.ide.eclipse.realignment.Toolbar"
+               label="JD-Eclipse">
+            <command
+                  commandId="jd.ide.eclipse.realignment.Decompile"
+                  icon="icons/icon.png"
+                  style="push">
+               <visibleWhen
+                     checkEnabled="true">
+                  <iterate
+                        ifEmpty="false"
+                        operator="or">
+                     <or>
+                         <instanceof
+                               value="org.eclipse.jdt.core.IClassFile">
+                         </instanceof>
+                         <with
+                               variable="activePart">
+                            <instanceof
+                                  value="org.eclipse.jdt.internal.ui.javaeditor.ClassFileEditor">
+                            </instanceof>
+                         </with>
+                     </or>                  
+                  </iterate>
+               </visibleWhen>
+            </command>
+         </toolbar>
+      </menuContribution>
+   </extension>
+   <extension
+         point="org.eclipse.ui.commands">
+      <command
+            defaultHandler="jd.ide.eclipse.realignment.menu.DecompileCommandHandler"
+            id="jd.ide.eclipse.realignment.Decompile"
+            name="Decompile">
+      </command>
    </extension>
 
 </fragment>
