@@ -16,10 +16,27 @@ title: Home
 
 <h2>User Guide</h2>
 
-<p>Getting decompiled source for all the classes in a jar is as simple as right clicking 
-on a class within the Package Explorer view and enabling decompilation.
+<p>Attaching/detaching decompiled source for all classes in a jar is as simple as
+clicking the buttons in the toolbar.
 
-<ol>
+<ul>
+<li>The buttons in the toolbar look like this:
+
+<p><img src="img/jde_buttons.png">
+
+<p>These buttons are only visible when a class editor is active or a class, jar package
+or entire jar is selected in the Package Explorer.
+
+<li>The buttons can be entirely enabled/disabled through the normal Customize
+Perspective window:
+
+<p><img src="img/jde_buttons_config.png">
+</ul>
+
+<p>You can also right click on a class within the Package Explorer view to control
+decompilation.
+
+<ul>
 <li>When decompilation is disabled:
 
 <p><img src="img/jde_disabled.png">
@@ -36,9 +53,11 @@ on a class within the Package Explorer view and enabling decompilation.
 
 <p><img src="img/jde_jar_enabled.png">
 
-</ol>
+<li>Or you can right click on multiple jars or classes across multiple jars:
 
-<p>NOTE: You will only be given the options to attach source or decompiled source if you have selected a <b>single</b> class, package or jar.
+<p><img src="img/jde_multijar.png">
+
+</ul>
 
 <p>Further details about how this plugin works can be found <a href="http://mchr3k-coding.blogspot.co.uk/2012/08/jd-eclipse-realign-source-lifetime.html">on my blog</a>.
 
@@ -47,6 +66,15 @@ on a class within the Package Explorer view and enabling decompilation.
 <h2>Features</h2>
 
 <p>This project adds the following:
+
+<h3>03/11/2012 (1.1.0)</h3>
+
+<ul>
+<li><a href="https://github.com/mchr3k/jdeclipse-realign/issues/6">Issue 6</a>: Add toolbar buttons 
+which allow for decompiled source to be quickly attached/detached.
+<li><a href="https://github.com/mchr3k/jdeclipse-realign/issues/8">Issue 8</a>: Make context menu work
+when multiple jars have been selected.
+</ul>
 
 <h3>28/08/2012 (1.0.9)</h3>
 
