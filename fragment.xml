@@ -28,24 +28,25 @@
             <command
                   commandId="jd.ide.eclipse.realignment.Decompile"
                   icon="icons/icon.png"
+                  label="Attach Decompiled Source"
                   style="push">
                <visibleWhen
                      checkEnabled="true">
-                  <iterate
-                        ifEmpty="false"
-                        operator="or">
-                     <or>
-                         <instanceof
-                               value="org.eclipse.jdt.core.IClassFile">
-                         </instanceof>
-                         <with
-                               variable="activePart">
-                            <instanceof
-                                  value="org.eclipse.jdt.internal.ui.javaeditor.ClassFileEditor">
-                            </instanceof>
-                         </with>
-                     </or>                  
-                  </iterate>
+                  <reference
+                        definitionId="realignment.jd.ide.eclipse.ToolbarButtonVisibility">
+                  </reference>
+               </visibleWhen>
+            </command>
+            <command
+                  commandId="jd.ide.eclipse.realignment.DetachDecompile"
+                  icon="icons/icon_source.png"
+                  label="Detach Decompiled Source"
+                  style="push">
+               <visibleWhen
+                     checkEnabled="true">
+                  <reference
+                        definitionId="realignment.jd.ide.eclipse.ToolbarButtonVisibility">
+                  </reference>
                </visibleWhen>
             </command>
          </toolbar>
@@ -54,10 +55,42 @@
    <extension
          point="org.eclipse.ui.commands">
       <command
-            defaultHandler="jd.ide.eclipse.realignment.menu.DecompileCommandHandler"
+            defaultHandler="jd.ide.eclipse.realignment.menu.AttachCommandHandler"
             id="jd.ide.eclipse.realignment.Decompile"
-            name="Decompile">
+            name="Attach Decompiled Source">
       </command>
+      <command
+            defaultHandler="jd.ide.eclipse.realignment.menu.DetachCommandHandler"
+            id="jd.ide.eclipse.realignment.DetachDecompile"
+            name="Detach Decompiled Source">
+      </command>
+   </extension>
+   <extension
+         point="org.eclipse.core.expressions.definitions">
+      <definition
+            id="realignment.jd.ide.eclipse.ToolbarButtonVisibility">
+          <iterate
+                ifEmpty="false"
+                operator="and">
+             <or>
+                 <instanceof
+                       value="org.eclipse.jdt.core.IClassFile">
+                 </instanceof>
+                 <with
+                       variable="activePart">
+                    <instanceof
+                          value="org.eclipse.jdt.internal.ui.javaeditor.ClassFileEditor">
+                    </instanceof>
+                 </with>
+                 <instanceof
+                       value="org.eclipse.jdt.internal.core.JarPackageFragmentRoot">
+                </instanceof>
+                <instanceof
+                       value="org.eclipse.jdt.internal.core.JarPackageFragment">
+                </instanceof>
+             </or>                  
+          </iterate>
+      </definition>
    </extension>
 
 </fragment>
