@@ -4,9 +4,11 @@ import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.Enumeration;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.atomic.AtomicReference;
 
 import jd.ide.eclipse.JavaDecompilerPlugin;
@@ -152,7 +154,6 @@ public class OpenClassWith extends ExtensionContributionFactory
   public void createContributionItems(IServiceLocator serviceLocator,
       IContributionRoot additions)
   {
-
     final ISelectionService selService = (ISelectionService) serviceLocator
         .getService(ISelectionService.class);
 
@@ -162,7 +163,6 @@ public class OpenClassWith extends ExtensionContributionFactory
     {
       protected IContributionItem[] getContributionItems()
       {
-
         // Get the list of editors that can open a class file
         IEditorRegistry registry = PlatformUI.getWorkbench()
             .getEditorRegistry();
@@ -172,43 +172,46 @@ public class OpenClassWith extends ExtensionContributionFactory
         if (selections == null)
           return new IContributionItem[0];
 
-        // Extract selections
+        // Attempt to find a single root
         final List<IJavaElement> elements = getSelectedElements(selService,
             IJavaElement.class);
+
+        final Set<PackageFragmentRoot> roots = new HashSet<PackageFragmentRoot>();
+
+        if (elements.size() > 0)
+        {
+          for (IJavaElement element : elements)
+          {
+            roots.add(getRoot(element));
+          }
+        }
+
+        // Check which classes are selected
         final List<IClassFile> classes = getSelectedElements(selService,
             IClassFile.class);
 
-        // Attempt to find root
-        final PackageFragmentRoot root;
-        if (elements.size() > 0)
-        {
-          root = getRoot(elements.get(0));
-        }
-        else
-        {
-          root = null;
-        }
-
-        // List of menu items
         List<IContributionItem> list = new ArrayList<IContributionItem>();
-
         if (classes.size() > 0)
         {
+          // Add an action to open all selected classes
           IEditorDescriptor jdtClassViewer = registry
               .findEditor(Startup.JDT_EDITOR_ID);
           list.add(new ActionContributionItem(new OpenClassesAction(
               jdtClassViewer, classes)));
         }
 
-        if ((root != null) && (classes.size() <= 1))
+        if (roots.size() > 0)
         {
           if (list.size() > 0)
           {
             list.add(new Separator());
           }
 
-          // if (!sourceAttached)
+          if (roots.size() == 1)
           {
+            // Single package fragment root
+            final PackageFragmentRoot root = roots.iterator().next();
+
             list.add(new ActionContributionItem(new Action("Decompiled Source",
                 IAction.AS_CHECK_BOX)
             {
@@ -225,24 +228,58 @@ public class OpenClassWith extends ExtensionContributionFactory
                 }
               }
             }));
-          }
-          list.add(new ActionContributionItem(new Action()
-          {
-            @Override
-            public String getText()
-            {
-              return "Attach Source...";
-            }
 
-            @Override
-            public void run()
+            list.add(new ActionContributionItem(new Action()
             {
-              if (root != null)
+              @Override
+              public String getText()
               {
-                doSourceAttach(root);
+                return "Attach Source...";
               }
-            }
-          }));
+
+              @Override
+              public void run()
+              {
+                if (root != null)
+                {
+                  doSourceAttach(root);
+                }
+              }
+            }));
+          }
+          else
+          {
+            // Multiple package fragment roots
+            list.add(new ActionContributionItem(new Action("Enable Decompiled Source")
+            {
+              @Override
+              public void run()
+              {
+                for (PackageFragmentRoot root : roots)
+                {
+                  if (!isDecompilerAttached(root))
+                  {
+                    doDecompilerAttach(root);
+                  }
+                }
+              }
+            }));
+            list.add(new ActionContributionItem(new Action("Disable Decompiled Source")
+            {
+              @Override
+              public void run()
+              {
+                for (PackageFragmentRoot root : roots)
+                {
+                  if (isDecompilerAttached(root))
+                  {
+                    System.out.println("Disable: " + root);
+                    doDecompilerAttach(root);
+                  }
+                }
+              }
+            }));
+          }
         }
 
         return list.toArray(new IContributionItem[list.size()]);
