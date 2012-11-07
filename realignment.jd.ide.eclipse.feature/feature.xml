@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<feature
+      id="realignment.jd.ide.eclipse.feature"
+      label="JD Eclipse (Realign Edition)"
+      version="1.1.0">
+
+   <description>
+      Adds a new &quot;Class File Viewer (JD-Realign)&quot; Eclipse Editor that
+uses JD-Eclipse to produce decompiled Java source formatted to
+make sure the line numbers are correct.
+   </description>
+
+   <requires>
+      <import feature="jd.edi.eclipse.feature"/>
+   </requires>
+
+   <plugin
+         id="realignment.jd.ide.eclipse"
+         download-size="0"
+         install-size="0"
+         version="1.1.0"
+         fragment="true"
+         unpack="false"/>
+
+</feature>
