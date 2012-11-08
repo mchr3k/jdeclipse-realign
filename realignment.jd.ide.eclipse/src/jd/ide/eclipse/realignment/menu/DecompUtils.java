@@ -8,6 +8,7 @@ import java.util.concurrent.atomic.AtomicReference;
 
 import jd.ide.eclipse.JavaDecompilerPlugin;
 import jd.ide.eclipse.realignment.editors.RealignmentJDSourceMapper;
+import jd.ide.eclipse.realignment.editors.RealignmentJDSourceMapper.SourceAttachmentDetails;
 
 import org.eclipse.core.runtime.CoreException;
 import org.eclipse.core.runtime.IPath;
@@ -135,6 +136,7 @@ public class DecompUtils
   {
     try
     {
+      Shell shell = PlatformUI.getWorkbench().getActiveWorkbenchWindow().getShell();
       SourceMapper existingMapper = root.getSourceMapper();
 
       if (existingMapper instanceof RealignmentJDSourceMapper)
@@ -143,21 +145,38 @@ public class DecompUtils
         RealignmentJDSourceMapper jdSourceMapper = (RealignmentJDSourceMapper) existingMapper;
         root.setSourceMapper(null);
         RealignmentJDSourceMapper.clearDecompiled(jdSourceMapper);
+
+        // Re-attach any source which was previously attached
+        SourceAttachmentDetails details = jdSourceMapper.sourceDetails;
+        if (details != null)
+        {
+          applySourceAttachment(shell, details.newEntry,
+              details.project, details.containerPath,
+              details.isReferencedEntry);
+        }
       }
       else
       {
         // Prepare to add decompiler attachment by removing any existing source
         // attachment
+        SourceAttachmentDetails details = null;
         if (root.getSourceAttachmentPath() != null)
         {
           AtomicReference<IPath> containerPath = new AtomicReference<IPath>();
           IClasspathEntry entry = getClasspathEntry(root, containerPath);
+
+          // Backup existing attachment details
+          CPListElement backupCpElement = CPListElement.createFromExisting(entry,
+                                                           root.getJavaProject());
+          details = new SourceAttachmentDetails(backupCpElement.getClasspathEntry(),
+                                                root.getJavaProject(),
+                                                containerPath.get(),
+                                                entry.getReferencingEntry() != null);
+
+          // Delete attachment
           CPListElement cpElement = CPListElement.createFromExisting(entry,
               root.getJavaProject());
           cpElement.setAttribute(CPListElement.SOURCEATTACHMENT, null);
-
-          Shell shell = PlatformUI.getWorkbench().getActiveWorkbenchWindow()
-              .getShell();
           applySourceAttachment(shell, cpElement.getClasspathEntry(),
               root.getJavaProject(), containerPath.get(),
               entry.getReferencingEntry() != null);
@@ -167,11 +186,11 @@ public class DecompUtils
         // jd.ide.eclipse.editors.JDClassFileEditor
 
         // The location of the archive file containing classes.
-        IPath classePath = root.getPath();
+        IPath classPath = root.getPath();
         // The location of the archive file containing source.
         IPath sourcePath = root.getSourceAttachmentPath();
         if (sourcePath == null)
-          sourcePath = classePath;
+          sourcePath = classPath;
         // Specifies the location of the package fragment root
         // within the zip (empty specifies the default root).
         IPath sourceAttachmentRootPath = root.getSourceAttachmentRootPath();
@@ -190,7 +209,7 @@ public class DecompUtils
 
         // Create source mapper
         SourceMapper mapper = RealignmentJDSourceMapper.newSourceMapper(
-            classePath, sourcePath, sourceRootPath, options);
+                       classPath, sourcePath, sourceRootPath, options, details);
         root.setSourceMapper(mapper);
       }
 

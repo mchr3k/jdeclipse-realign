@@ -21,6 +21,8 @@ import org.eclipse.core.runtime.Platform;
 import org.eclipse.core.runtime.Status;
 import org.eclipse.jdt.core.IBuffer;
 import org.eclipse.jdt.core.IClassFile;
+import org.eclipse.jdt.core.IClasspathEntry;
+import org.eclipse.jdt.core.IJavaProject;
 import org.eclipse.jdt.core.IType;
 import org.eclipse.jdt.internal.compiler.env.IBinaryType;
 import org.eclipse.jdt.internal.core.BufferManager;
@@ -37,6 +39,23 @@ import org.eclipse.jface.preference.IPreferenceStore;
 @SuppressWarnings("restriction")
 public class RealignmentJDSourceMapper extends JDSourceMapper
 {
+  public static class SourceAttachmentDetails
+  {
+    public final IClasspathEntry newEntry;
+    public final IJavaProject project;
+    public final IPath containerPath;
+    public final boolean isReferencedEntry;
+
+    public SourceAttachmentDetails(IClasspathEntry newEntry,
+        IJavaProject project, IPath containerPath, boolean isReferencedEntry)
+    {
+      this.newEntry = newEntry;
+      this.project = project;
+      this.containerPath = containerPath;
+      this.isReferencedEntry = isReferencedEntry;
+    }
+  }
+
 	private static final Map<JDSourceMapper, Set<IClassFile>> decompiledClasses = new HashMap<JDSourceMapper, Set<IClassFile>>();
 
 	public static synchronized void addDecompiled(JDSourceMapper mapper, IClassFile file)
@@ -80,14 +99,16 @@ public class RealignmentJDSourceMapper extends JDSourceMapper
 	}
 
 	@SuppressWarnings("rawtypes")
-	public static SourceMapper newSourceMapper(
-		IPath rootPath, IPath sourcePath, String sourceRootPath, Map options)
+	public static SourceMapper newSourceMapper(IPath rootPath, IPath sourcePath,
+                                          	 String sourceRootPath, Map options,
+                                          	 SourceAttachmentDetails details)
 	{
 		try
 		{
-			return  new RealignmentJDSourceMapper(
+			return new RealignmentJDSourceMapper(
 				rootPath, sourcePath, sourceRootPath, options,
-				createJDSourceMapper(rootPath, sourcePath, sourceRootPath, options));
+				createJDSourceMapper(rootPath, sourcePath, sourceRootPath, options),
+				details);
 		}
 		catch (Exception e)
 		{
@@ -127,10 +148,17 @@ public class RealignmentJDSourceMapper extends JDSourceMapper
 
 	String libraryPath=null;
 
-	public RealignmentJDSourceMapper(
-		IPath classePath, IPath sourcePath, String sourceRootPath, Map<?,?> options,JDSourceMapper sourceMapper)
+  public final SourceAttachmentDetails sourceDetails;
+
+	public RealignmentJDSourceMapper(IPath classePath,
+	                                 IPath sourcePath,
+	                                 String sourceRootPath,
+	                                 Map<?,?> options,
+	                                 JDSourceMapper sourceMapper,
+	                                 SourceAttachmentDetails details)
 	{
 		super(classePath, sourcePath, sourceRootPath,options);
+    this.sourceDetails = details;
 		Method method;
 		try {
 			method = sourceMapper.getClass().getDeclaredMethod(

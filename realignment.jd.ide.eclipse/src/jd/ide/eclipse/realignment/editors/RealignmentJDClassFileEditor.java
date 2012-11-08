@@ -76,7 +76,7 @@ public class RealignmentJDClassFileEditor extends JDClassFileEditor
     {
       try
       {
-        return RealignmentJDSourceMapper.newSourceMapper(rootPath, sourcePath, sourceRootPath, options);
+        return RealignmentJDSourceMapper.newSourceMapper(rootPath, sourcePath, sourceRootPath, options, null);
       }
       catch (Exception e)
       {
