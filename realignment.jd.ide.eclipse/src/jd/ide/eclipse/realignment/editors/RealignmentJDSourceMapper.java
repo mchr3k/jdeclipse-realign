@@ -48,13 +48,11 @@ public class RealignmentJDSourceMapper extends JDSourceMapper
 			decompiledClasses.put(mapper, set);
 		}
 		set.add(file);
-		System.out.println("Added: " + set);
 	}
 
 	public static synchronized void clearDecompiled(JDSourceMapper mapper)
 	{
 		Set<IClassFile> set = decompiledClasses.remove(mapper);
-		System.out.println("Clear: " + set);
 		for (IClassFile file : set)
 		{
 			BufferManager bufferManager = BufferManager.getDefaultBufferManager();
@@ -153,7 +151,8 @@ public class RealignmentJDSourceMapper extends JDSourceMapper
 		return super.findSource(type, info);
 	}
 
-	public char[] findSource(IPath path, String javaClassPath)
+	@Override
+  public char[] findSource(IPath path, String javaClassPath)
 	{
 		IPreferenceStore store = JavaDecompilerPlugin.getDefault().getPreferenceStore();
 		boolean saveValLineNumbers= store.getBoolean(JavaDecompilerPlugin.PREF_DISPLAY_LINE_NUMBERS);
@@ -164,7 +163,8 @@ public class RealignmentJDSourceMapper extends JDSourceMapper
 		return output;
 	}
 
-	protected String getLibraryPath() throws IOException {
+	@Override
+  protected String getLibraryPath() throws IOException {
 		return libraryPath;
 	}
 	public String doDecompiling(String baseName, String qualifiedName) throws IOException{

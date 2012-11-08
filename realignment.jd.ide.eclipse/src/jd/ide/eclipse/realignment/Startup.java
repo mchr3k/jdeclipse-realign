@@ -10,84 +10,90 @@ import org.eclipse.ui.internal.registry.EditorRegistry;
 import org.eclipse.ui.internal.registry.FileEditorMapping;
 
 @SuppressWarnings("restriction")
-public class Startup implements IStartup {
+public class Startup implements IStartup
+{
+  // The plug-in IDs
+  public static final String EDITOR_ID = "realignment.editor.jd.ide.eclipse";
+  public static final String JD_EDITOR_ID = "jd.ide.eclipse.editors.JDClassFileEditor";
 
-	// The plug-in IDs
-	public static final String EDITOR_ID  = "realignment.editor.jd.ide.eclipse";
-	public static final String JD_EDITOR_ID = "jd.ide.eclipse.editors.JDClassFileEditor";
+  // External plug-in IDs
+  public static final String JDT_EDITOR_ID = "org.eclipse.jdt.ui.ClassFileEditor";
 
-	// External plug-in IDs
-	public static final String JDT_EDITOR_ID  = "org.eclipse.jdt.ui.ClassFileEditor";
+  public void earlyStartup()
+  {
+    // Setup ".class" file association
+    Display.getDefault().syncExec(new SetupClassFileAssociationRunnable());
+  }
 
-	// Preferences
-	public  static final String PLUGIN_ID      = "jd.ide.eclipse.realignment";
-	public static final String PREF_SETUP      = PLUGIN_ID + ".prefs.Setup";
+  private static class SetupClassFileAssociationRunnable implements Runnable
+  {
+    public void run()
+    {
+      EditorRegistry registry = (EditorRegistry) PlatformUI.getWorkbench()
+          .getEditorRegistry();
 
-	public void earlyStartup() {
-		// Setup ".class" file association
-		Display.getDefault().syncExec(new SetupClassFileAssociationRunnable());
-	}
+      // Will not work because this will not persist across sessions
+      // registry.setDefaultEditor("*.class", id);
 
+      IFileEditorMapping[] mappings = registry.getFileEditorMappings();
 
-	private static class SetupClassFileAssociationRunnable implements Runnable
-	{
-		public void run()
-		{
-			EditorRegistry registry =
-			           (EditorRegistry) PlatformUI.getWorkbench().getEditorRegistry();
+      // Search Class file editor mappings
+      IFileEditorMapping classNoSource = null;
+      IFileEditorMapping classPlain = null;
+      for (IFileEditorMapping mapping : mappings)
+      {
+        if (mapping.getExtension().equals("class without source"))
+        {
+          classNoSource = mapping;
+        }
+        else if (mapping.getExtension().equals("class"))
+        {
+          classPlain = mapping;
+        }
+      }
+      IEditorDescriptor jdtClassViewer = registry.findEditor(JDT_EDITOR_ID);
 
-			// Will not work because this will not persist across sessions
-			// registry.setDefaultEditor("*.class", id);
+      // * If there is a "class without source" type - handle this and revert
+      // "class" to the default handler.
+      // * Else register as the default handler for "class"
 
-			IFileEditorMapping[] mappings = registry.getFileEditorMappings();
+      if (classNoSource != null)
+      {
+        // Got a "class without source" type - default to handle this and
+        // un-default from the "class" type
+        registry.setDefaultEditor("." + classNoSource.getExtension(),
+            EDITOR_ID);
 
-			// Search Class file editor mappings
-			IFileEditorMapping classNoSource = null;
-			IFileEditorMapping classPlain = null;
-			for (IFileEditorMapping mapping : mappings)
-			{
-				if (mapping.getExtension().equals("class without source"))
-				{
-					classNoSource = mapping;
-			    }
-				else if (mapping.getExtension().equals("class"))
-				{
-					classPlain = mapping;
-				}
-			}
+        if (classPlain != null)
+        {
+          if (jdtClassViewer != null)
+          {
+            // Restore the default class viewer as the default
+            // "class with source" viewer
+            registry.setDefaultEditor("." + classPlain.getExtension(),
+                JDT_EDITOR_ID);
+          }
 
-			// On start:
-			// * Revert the class mappings to use the JDT Class File Viewer
-			// * Delete any file mappings which include the JD or JD-Realign editors
+          for (IEditorDescriptor editorDesc : classPlain.getEditors())
+          {
+            if (editorDesc.getId().startsWith(JD_EDITOR_ID))
+            {
+              // Unmap the default JD Eclipse editor
+              ((FileEditorMapping) classPlain)
+                  .removeEditor((EditorDescriptor) editorDesc);
+            }
+          }
+        }
+      }
+      else if (classPlain != null)
+      {
+        // Only got a class file type - default to decompile this
+        registry.setDefaultEditor("." + classPlain.getExtension(), EDITOR_ID);
+      }
 
-			for (IFileEditorMapping mapping : new IFileEditorMapping[] {classNoSource, classPlain})
-			{
-				if (mapping != null)
-				{
-					IEditorDescriptor defaultEditor = mapping.getDefaultEditor();
-					if ((defaultEditor == null) ||
-					    (defaultEditor.getId().startsWith(JD_EDITOR_ID)) ||
-					    (defaultEditor.getId().equals(EDITOR_ID)))
-					{
-						registry.setDefaultEditor("." + mapping.getExtension(), JDT_EDITOR_ID);
-					}
-
-					// Unmap the JD-Eclipse and JD-Eclipse-Realign editors
-					for (IEditorDescriptor editor : mapping.getEditors())
-					{
-						if ((editor.getId().startsWith(JD_EDITOR_ID)) ||
-							(editor.getId().equals(EDITOR_ID)))
-						{
-							((FileEditorMapping)mapping).removeEditor((EditorDescriptor) editor);
-						}
-					}
-				}
-			}
-
-			// Save updates
-			registry.setFileEditorMappings((FileEditorMapping[]) mappings);
-			registry.saveAssociations();
-		}
-	}
-
+      // Save updates
+      registry.setFileEditorMappings((FileEditorMapping[]) mappings);
+      registry.saveAssociations();
+    }
+  }
 }

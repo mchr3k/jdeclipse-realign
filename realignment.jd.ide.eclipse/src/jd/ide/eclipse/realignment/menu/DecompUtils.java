@@ -192,46 +192,46 @@ public class DecompUtils
         SourceMapper mapper = RealignmentJDSourceMapper.newSourceMapper(
             classePath, sourcePath, sourceRootPath, options);
         root.setSourceMapper(mapper);
+      }
 
-        // Remove empty buffer
-        try
+      // Remove any buffers associated with the root being modified
+      try
+      {
+        Method method = BufferManager.class.getDeclaredMethod("removeBuffer",
+            new Class[]
+            { IBuffer.class });
+        method.setAccessible(true);
+
+        Enumeration<?> openBuffers = BufferManager.getDefaultBufferManager()
+            .getOpenBuffers();
+        while (openBuffers.hasMoreElements())
         {
-          Method method = BufferManager.class.getDeclaredMethod("removeBuffer",
-              new Class[]
-              { IBuffer.class });
-          method.setAccessible(true);
+          IBuffer buffer = (IBuffer) openBuffers.nextElement();
+          IOpenable owner = buffer.getOwner();
 
-          Enumeration<?> openBuffers = BufferManager.getDefaultBufferManager()
-              .getOpenBuffers();
-          while (openBuffers.hasMoreElements())
+          if (owner instanceof IClassFile)
           {
-            IBuffer buffer = (IBuffer) openBuffers.nextElement();
-            IOpenable owner = buffer.getOwner();
+            IClassFile bufClassFile = (IClassFile) owner;
+            PackageFragmentRoot bufRoot = SelectUtils.getRoot(bufClassFile);
 
-            if (owner instanceof IClassFile)
+            if (root.equals(bufRoot))
             {
-              IClassFile bufClassFile = (IClassFile) owner;
-              PackageFragmentRoot bufRoot = SelectUtils.getRoot(bufClassFile);
-
-              if (root.equals(bufRoot))
-              {
-                // Remove any empty buffer
-                method.invoke(BufferManager.getDefaultBufferManager(),
-                    new Object[]
-                    { buffer });
-              }
+              // Remove any empty buffer
+              method.invoke(BufferManager.getDefaultBufferManager(),
+                  new Object[]
+                  { buffer });
             }
           }
         }
-        catch (Exception e)
-        {
-          JavaDecompilerPlugin
-              .getDefault()
-              .getLog()
-              .log(
-                  new Status(Status.ERROR, JavaDecompilerPlugin.PLUGIN_ID, 0, e
-                      .getMessage(), e));
-        }
+      }
+      catch (Exception e)
+      {
+        JavaDecompilerPlugin
+            .getDefault()
+            .getLog()
+            .log(
+                new Status(Status.ERROR, JavaDecompilerPlugin.PLUGIN_ID, 0, e
+                    .getMessage(), e));
       }
 
       // Construct a delta to indicate that the source attachment has changed
