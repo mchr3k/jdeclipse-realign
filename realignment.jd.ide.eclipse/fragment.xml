@@ -6,16 +6,29 @@
       <startup class="jd.ide.eclipse.realignment.Startup"/>
    </extension>
    <extension
+         id="javaeditor"
          point="org.eclipse.ui.editors">
       <editor
             class="jd.ide.eclipse.realignment.editors.RealignmentJDClassFileEditor"
-            contributorClass="org.eclipse.ui.texteditor.BasicTextEditorActionContributor"
+            contributorClass="org.eclipse.jdt.internal.ui.javaeditor.ClassFileEditorActionContributor"
             default="false"
             extensions="class"
             icon="icons/classf_obj.gif"
             id="realignment.editor.jd.ide.eclipse"
             name="Class File Viewer [Decompiled]">
+         <contentTypeBinding
+               contentTypeId="org.eclipse.jdt.core.javaClass">
+         </contentTypeBinding>
       </editor>
+   </extension>
+   <extension
+         point="org.eclipse.ui.actionSetPartAssociations">
+      <actionSetPartAssociation
+            targetID="org.eclipse.jdt.ui.JavaActionSet">
+         <part
+               id="realignment.editor.jd.ide.eclipse">
+         </part>
+      </actionSetPartAssociation>
    </extension>
    <extension
          point="org.eclipse.ui.menus">
