@@ -157,8 +157,6 @@ public class DecompUtils
       }
       else
       {
-        // Prepare to add decompiler attachment by removing any existing source
-        // attachment
         SourceAttachmentDetails details = null;
         if (root.getSourceAttachmentPath() != null)
         {
@@ -172,14 +170,6 @@ public class DecompUtils
                                                 root.getJavaProject(),
                                                 containerPath.get(),
                                                 entry.getReferencingEntry() != null);
-
-          // Delete attachment
-          CPListElement cpElement = CPListElement.createFromExisting(entry,
-              root.getJavaProject());
-          cpElement.setAttribute(CPListElement.SOURCEATTACHMENT, null);
-          applySourceAttachment(shell, cpElement.getClasspathEntry(),
-              root.getJavaProject(), containerPath.get(),
-              entry.getReferencingEntry() != null);
         }
 
         // Source copied from

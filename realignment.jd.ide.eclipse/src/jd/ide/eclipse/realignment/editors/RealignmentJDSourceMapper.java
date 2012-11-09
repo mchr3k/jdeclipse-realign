@@ -150,6 +150,8 @@ public class RealignmentJDSourceMapper extends JDSourceMapper
 
   public final SourceAttachmentDetails sourceDetails;
 
+  private final IPath classPath;
+
 	public RealignmentJDSourceMapper(IPath classePath,
 	                                 IPath sourcePath,
 	                                 String sourceRootPath,
@@ -158,6 +160,7 @@ public class RealignmentJDSourceMapper extends JDSourceMapper
 	                                 SourceAttachmentDetails details)
 	{
 		super(classePath, sourcePath, sourceRootPath,options);
+    classPath = classePath;
     this.sourceDetails = details;
 		Method method;
 		try {
@@ -171,6 +174,36 @@ public class RealignmentJDSourceMapper extends JDSourceMapper
 					0, e.getMessage(), e));
 		}
 	}
+
+
+  @Override
+  public char[] findSource(String javaSourcePath)
+  {
+    char[] source = null;
+
+    // Decompile class file
+    String javaClassPath = getJavaClassPath(javaSourcePath);
+    if (javaClassPath != null)
+      source = findSource(this.classPath, javaClassPath);
+
+    return source;
+  }
+
+  private final static String JAVA_CLASS_SUFFIX         = ".class";
+  private final static String JAVA_SOURCE_SUFFIX        = ".java";
+  private final static int    JAVA_SOURCE_SUFFIX_LENGTH = 5;
+
+  private static String getJavaClassPath(String javaSourcePath)
+  {
+    int index = javaSourcePath.length() - JAVA_SOURCE_SUFFIX_LENGTH;
+
+    if (javaSourcePath.regionMatches(
+        true, index, JAVA_SOURCE_SUFFIX,
+        0, JAVA_SOURCE_SUFFIX_LENGTH))
+      return javaSourcePath.substring(0, index) + JAVA_CLASS_SUFFIX;
+
+    return null;
+  }
 
 	@Override
 	public char[] findSource(IType type, IBinaryType info) {
