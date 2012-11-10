@@ -16,7 +16,10 @@ title: Home
 
 <h2>User Guide</h2>
 
-<p>Attaching/detaching decompiled source for all classes in a jar is as simple as
+<p>Viewing the decompiled source for a class is as simple as opening any class in a
+jar which doesn't have a source attachment.
+
+<p>Switching between decompiled/regular source for all classes in a jar can be done quickly by
 clicking the buttons in the toolbar.
 
 <ul>
@@ -34,7 +37,8 @@ Perspective window:
 </ul>
 
 <p>You can also right click on a class within the Package Explorer or Project Explorer view to control
-decompilation.
+decompilation. However, if you choose to open any class in a jar which doesn't have a source attachment, 
+decompiled source will be automatically attached to the jar.
 
 <ul>
 <li>When decompilation is disabled:
@@ -66,6 +70,15 @@ decompilation.
 <h2>Features</h2>
 
 <p>This project adds the following:
+
+<h3>10/11/2012 (1.1.1)</h3>
+
+<ul>
+<li><a href="https://github.com/mchr3k/jdeclipse-realign/issues/12">Issue 12</a>: Restore the JD-Eclipse Realign Class File Viewer
+to enable classes without source to automatically have decompiled source attached.
+<li>Restored code to automatically set file type associations every time Eclipse is started. This will force the new editor to be 
+the default viewer for classes (or for classes without source from Eclipse Juno).
+</ul>
 
 <h3>03/11/2012 (1.1.0)</h3>
 
