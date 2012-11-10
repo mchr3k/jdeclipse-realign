@@ -2,7 +2,7 @@
 <feature
       id="realignment.jd.ide.eclipse.feature"
       label="JD Eclipse (Realign Edition)"
-      version="1.1.0">
+      version="1.1.1">
 
    <description>
       Adds a new &quot;Class File Viewer (JD-Realign)&quot; Eclipse Editor that
@@ -18,7 +18,7 @@ make sure the line numbers are correct.
          id="realignment.jd.ide.eclipse"
          download-size="0"
          install-size="0"
-         version="1.1.0"
+         version="1.1.1"
          fragment="true"
          unpack="false"/>
 
