@@ -51,10 +51,12 @@ public class OpenClassWith extends ExtensionContributionFactory
   {
     private final IEditorDescriptor classEditor;
     private final List<IClassFile> classes;
+    private final String label;
 
-    private OpenClassesAction(IEditorDescriptor classEditor,
+    private OpenClassesAction(String label, IEditorDescriptor classEditor,
         List<IClassFile> classes)
     {
+      this.label = label;
       this.classEditor = classEditor;
       this.classes = classes;
     }
@@ -62,7 +64,7 @@ public class OpenClassWith extends ExtensionContributionFactory
     @Override
     public String getText()
     {
-      return classEditor.getLabel();
+      return label;
     }
 
     @Override
@@ -132,6 +134,7 @@ public class OpenClassWith extends ExtensionContributionFactory
     String dynamicMenuId = "jd.ide.eclipse.realignment.items";
     IContributionItem dynamicItems = new CompoundContributionItem(dynamicMenuId)
     {
+      @Override
       protected IContributionItem[] getContributionItems()
       {
         // Get the list of editors that can open a class file
@@ -171,8 +174,10 @@ public class OpenClassWith extends ExtensionContributionFactory
           // Add an action to open all selected classes
           IEditorDescriptor jdtClassViewer = registry
               .findEditor(Startup.JDT_EDITOR_ID);
-          list.add(new ActionContributionItem(new OpenClassesAction(
-              jdtClassViewer, classes)));
+          IEditorDescriptor jdRealignClassViewer = registry
+              .findEditor(Startup.EDITOR_ID);
+          list.add(new ActionContributionItem(new OpenClassesAction(jdtClassViewer.getLabel(),
+              jdRealignClassViewer, classes)));
         }
 
         if (roots.size() > 0)
