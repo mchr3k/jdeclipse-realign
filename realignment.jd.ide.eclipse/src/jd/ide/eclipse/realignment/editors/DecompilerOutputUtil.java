@@ -3,6 +3,9 @@ package jd.ide.eclipse.realignment.editors;
 import java.util.ArrayList;
 import java.util.List;
 
+import jd.ide.eclipse.JavaDecompilerPlugin;
+import jd.ide.eclipse.realignment.Prefs;
+
 import org.eclipse.jdt.core.dom.AST;
 import org.eclipse.jdt.core.dom.ASTNode;
 import org.eclipse.jdt.core.dom.ASTParser;
@@ -14,6 +17,7 @@ import org.eclipse.jdt.core.dom.FieldDeclaration;
 import org.eclipse.jdt.core.dom.Initializer;
 import org.eclipse.jdt.core.dom.MethodDeclaration;
 import org.eclipse.jdt.core.dom.TypeDeclaration;
+import org.eclipse.jface.preference.IPreferenceStore;
 
 
 /**
@@ -86,6 +90,7 @@ public class DecompilerOutputUtil {
 
 		// Parse source code into AST
 		javaSrcLines.add(null);
+		@SuppressWarnings("deprecation")
 		ASTParser parser = ASTParser.newParser(AST.JLS3);
 		parser.setSource(input.toCharArray());
 		unit=(CompilationUnit)parser.createAST(null);
@@ -141,24 +146,35 @@ public class DecompilerOutputUtil {
 
 	@Override
 	public String toString() {
+
+		IPreferenceStore prefStore = JavaDecompilerPlugin.getDefault().getPreferenceStore();
+		boolean stripLineNums = prefStore.getBoolean(Prefs.PREF_STRIP_LINE_NUMBERS);
+
 		String line;
 		int numLine;
 		StringBuffer realignOutput=new StringBuffer();
 
-		for(int i=1;i<javaSrcLines.size();i++){
-			JavaSrcLine javaSrcLine=initJavaSrcListItem(i);
+		for (int i = 1; i < javaSrcLines.size(); i++) {
+			JavaSrcLine javaSrcLine = initJavaSrcListItem(i);
 
-			if (javaSrcLine.inputLines.size() > 0)
-			{
-				for(int j=0;j<javaSrcLine.inputLines.size();j++){
-					numLine=javaSrcLine.inputLines.get(j);
-					line=inputLines.get(numLine).line;
-					line=line.substring(0, line.length() - line_separator_len);
+			if (javaSrcLine.inputLines.size() > 0) {
+				for (int j = 0; j < javaSrcLine.inputLines.size(); j++) {
+					numLine = javaSrcLine.inputLines.get(j);
+					line = inputLines.get(numLine).line;
+					line = line.substring(0, line.length() - line_separator_len);
+
+					if (stripLineNums) {
+						int commentStart = line.indexOf("/*");
+						int commentEnd = line.indexOf("*/ ");
+
+						if ((commentStart == 0) && (commentEnd > -1)) {
+							line = line.substring(commentEnd + 3);
+						}
+					}
+
 					realignOutput.append(line);
 				}
-			}
-			else
-			{
+			} else if (!stripLineNums) {
 				realignOutput.append("/*     */");
 			}
 
@@ -235,11 +251,11 @@ public class DecompilerOutputUtil {
 		/* Example:
 		 *
 		 * 19: /     /   public static boolean isTranslucencySupported(Translucency paramTranslucency)
-         * 20: /     /   {
-         * 21: / 105 /     switch (1.$SwitchMap$com$sun$awt$AWTUtilities$Translucency[paramTranslucency.ordinal()])
-         * 22: /     /     {
-         * 23: /     /     case 1:
-         * 24: / 107 /       return isWindowShapingSupported();
+		 * 20: /     /   {
+		 * 21: / 105 /     switch (1.$SwitchMap$com$sun$awt$AWTUtilities$Translucency[paramTranslucency.ordinal()])
+		 * 22: /     /     {
+		 * 23: /     /     case 1:
+		 * 24: / 107 /       return isWindowShapingSupported();
 		 *
 		 * # addAbove(19, 21, 105)
 		 * javaSrcLines[105] = [21] is already set when this method is called. This method creates the
@@ -258,10 +274,10 @@ public class DecompilerOutputUtil {
 		 * The result is the following folding of the code:
 		 *
 		 * 103: /     /   public static boolean isTranslucencySupported(Translucency paramTranslucency)
-         * 104: /     /   {
-         * 105: / 105 /     switch (1.$SwitchMap$com$sun$awt$AWTUtilities$Translucency[paramTranslucency.ordinal()])
-         * 106: /     /     {/     /     case 1:
-         * 107: / 107 /       return isWindowShapingSupported();
+		 * 104: /     /   {
+		 * 105: / 105 /     switch (1.$SwitchMap$com$sun$awt$AWTUtilities$Translucency[paramTranslucency.ordinal()])
+		 * 106: /     /     {/     /     case 1:
+		 * 107: / 107 /       return isWindowShapingSupported();
 		 */
 
 		// Iterate backwards through the input lines towards inputBeginLineNo
@@ -275,7 +291,7 @@ public class DecompilerOutputUtil {
 				JavaSrcLine javaSrcLine=null;
 				int offsetOutputLine = outputLineNo-offset;
 
-				if(offsetOutputLine > 0) {
+				if(offsetOutputLine > 0){
 					javaSrcLine=initJavaSrcListItem(offsetOutputLine);
 				}
 

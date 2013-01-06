@@ -115,5 +115,14 @@
           </iterate>
       </definition>
    </extension>
+   <extension
+         point="org.eclipse.ui.preferencePages">
+      <page
+            category="jd.ide.eclipse.preferences.PreferencePage"
+            class="jd.ide.eclipse.realignment.Prefs"
+            id="realignment.jd.ide.eclipse.prefs"
+            name="JD-Eclipse Realign">
+      </page>
+   </extension>
 
 </fragment>
