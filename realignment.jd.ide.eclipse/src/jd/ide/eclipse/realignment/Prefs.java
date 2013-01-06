@@ -13,8 +13,8 @@ import org.eclipse.ui.IWorkbenchPreferencePage;
 public class Prefs extends FieldEditorPreferencePage implements
     IWorkbenchPreferencePage
 {
-  public static final String PREF_STRIP_LINE_NUMBERS = JavaDecompilerPlugin.PLUGIN_ID +
-                                                         ".prefs.HideLineNumbers";
+  public static final String PREF_DISPLAY_LINE_NUMBERS = JavaDecompilerPlugin.PLUGIN_ID +
+                                                         ".prefs.realign.DisplayLineNumbers";
 
   public Prefs()
   {
@@ -22,8 +22,8 @@ public class Prefs extends FieldEditorPreferencePage implements
     setPreferenceStore(JavaDecompilerPlugin.getDefault().getPreferenceStore());
     setDescription("NOTE: 'Java/Decompiler/Display line numbers' " +
     		           "must be enabled for decompiled source to be " +
-    		           "correctly realigned. However, line numbers can " +
-    		           "be stripped from decompiled source here.");
+    		           "correctly realigned. However, displaying line " +
+    		           "numbers can be disabled here.");
   }
 
   public void init(IWorkbench workbench) {/* do nothing */}
@@ -35,6 +35,6 @@ public class Prefs extends FieldEditorPreferencePage implements
 
     new Label(fieldEditorParent, SWT.NONE);
 
-    addField(new BooleanFieldEditor(PREF_STRIP_LINE_NUMBERS, "Strip line numbers", fieldEditorParent));
+    addField(new BooleanFieldEditor(PREF_DISPLAY_LINE_NUMBERS, "Display line numbers", fieldEditorParent));
   }
 }

@@ -148,7 +148,7 @@ public class DecompilerOutputUtil {
 	public String toString() {
 
 		IPreferenceStore prefStore = JavaDecompilerPlugin.getDefault().getPreferenceStore();
-		boolean stripLineNums = prefStore.getBoolean(Prefs.PREF_STRIP_LINE_NUMBERS);
+		boolean displayLineNums = prefStore.getBoolean(Prefs.PREF_DISPLAY_LINE_NUMBERS);
 
 		String line;
 		int numLine;
@@ -163,7 +163,7 @@ public class DecompilerOutputUtil {
 					line = inputLines.get(numLine).line;
 					line = line.substring(0, line.length() - line_separator_len);
 
-					if (stripLineNums) {
+					if (!displayLineNums) {
 						int commentStart = line.indexOf("/*");
 						int commentEnd = line.indexOf("*/ ");
 
@@ -174,7 +174,7 @@ public class DecompilerOutputUtil {
 
 					realignOutput.append(line);
 				}
-			} else if (!stripLineNums) {
+			} else if (displayLineNums) {
 				realignOutput.append("/*     */");
 			}
 
